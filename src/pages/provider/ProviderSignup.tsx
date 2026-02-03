@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, Mail, Lock, AlertCircle, Building2, User, Phone } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
 interface FormData {
@@ -70,27 +69,41 @@ export function ProviderSignup() {
     setErrors({});
 
     try {
-      const { error: signUpError, user } = await signUp(formData.email, formData.password);
+      // Sign up the user
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+      });
+
       if (signUpError) throw signUpError;
 
-      if (user) {
-        // Create provider record
-        const { error: providerError } = await supabase.from('providers').insert({
-          user_id: user.id,
-          agency_name: formData.agencyName,
-          email: formData.email,
-          phone: formData.phone,
-          main_contact_name: formData.contactName,
-          main_contact_phone: formData.phone,
-          main_contact_email: formData.email,
-          address: '',
-        });
+      // Get user from data.user or data.session.user
+      const newUser = data.user || data.session?.user;
 
-        if (providerError) throw providerError;
+      if (!newUser) {
+        throw new Error('Account created but unable to get user data. Please try logging in.');
+      }
+
+      // Create provider record
+      const { error: providerError } = await supabase.from('providers').insert({
+        user_id: newUser.id,
+        agency_name: formData.agencyName,
+        email: formData.email,
+        phone: formData.phone,
+        main_contact_name: formData.contactName,
+        main_contact_phone: formData.phone,
+        main_contact_email: formData.email,
+        address: '',
+      });
+
+      if (providerError) {
+        console.error('Provider insert error:', providerError);
+        throw new Error(`Failed to create provider profile: ${providerError.message}`);
       }
 
       navigate('/provider/dashboard');
     } catch (err) {
+      console.error('Signup error:', err);
       setErrors({
         submit: err instanceof Error ? err.message : 'An error occurred during signup',
       });
