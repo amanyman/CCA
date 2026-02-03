@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Modal } from '../components/Modal';
-import { PartnerIntakeForm } from '../components/PartnerIntakeForm';
 import { SupportRequestForm } from '../components/SupportRequestForm';
 import { AnimatedCounter } from '../components/AnimatedCounter';
 import LiveActivityIndicator from '../components/LiveActivityIndicator';
@@ -25,7 +24,6 @@ import { useLanguage } from '../contexts/LanguageContext';
 export function HomePage() {
   const { language, setLanguage, t } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [partnerModalOpen, setPartnerModalOpen] = useState(false);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
 
   const smoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
@@ -149,16 +147,6 @@ export function HomePage() {
               >
                 {t('hero_learn_more')}
               </a>
-            </div>
-
-            <div className="mb-12">
-              <button
-                onClick={() => setPartnerModalOpen(true)}
-                className="group bg-rose-700 text-white px-8 py-4 rounded-xl hover:bg-rose-800 transition-all duration-300 font-semibold flex items-center justify-center gap-2 shadow-lg shadow-rose-700/20 hover:shadow-xl hover:shadow-rose-700/30"
-              >
-                Join Our Broker & Agent Partner Network
-                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
-              </button>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
@@ -411,13 +399,13 @@ export function HomePage() {
             </div>
 
             <div className="text-center">
-              <button
-                onClick={() => setPartnerModalOpen(true)}
+              <Link
+                to="/provider/signup"
                 className="inline-flex items-center gap-2 bg-blue-900 text-white px-8 py-4 rounded-xl hover:bg-blue-950 transition-all duration-300 font-semibold shadow-lg shadow-blue-900/20"
               >
                 {t('broker_become_partner')}
                 <ArrowRight className="w-5 h-5" />
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -494,12 +482,12 @@ export function HomePage() {
                 <li>{t('footer_california')}</li>
               </ul>
               <div className="mt-6">
-                <button
-                  onClick={() => setPartnerModalOpen(true)}
+                <Link
+                  to="/provider/signup"
                   className="text-sm text-blue-400 hover:text-blue-300 transition-colors font-medium"
                 >
                   {t('broker_become_partner')}
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -515,15 +503,7 @@ export function HomePage() {
         </div>
       </footer>
 
-      {/* Modals */}
-      <Modal
-        isOpen={partnerModalOpen}
-        onClose={() => setPartnerModalOpen(false)}
-        title={t('partner_modal_title')}
-      >
-        <PartnerIntakeForm onSuccess={() => {}} />
-      </Modal>
-
+      {/* Support Request Modal */}
       <Modal
         isOpen={supportModalOpen}
         onClose={() => setSupportModalOpen(false)}

@@ -210,6 +210,49 @@ CREATE POLICY referral_notes_admin_delete ON referral_notes
     );
 
 -- ============================================
+-- 5. SUPPORT_REQUESTS TABLE
+-- Public form submissions from accident victims
+-- ============================================
+CREATE TABLE IF NOT EXISTS support_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    address VARCHAR(10), -- zip code
+    preferred_contact_method VARCHAR(50),
+    help_type VARCHAR(100),
+    what_happened TEXT,
+    incident_date DATE,
+    any_passengers BOOLEAN,
+    referred_by VARCHAR(255),
+    consent_given BOOLEAN DEFAULT TRUE,
+    status VARCHAR(50) DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'in_progress', 'closed')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index for queries
+CREATE INDEX IF NOT EXISTS idx_support_requests_created_at ON support_requests(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_support_requests_status ON support_requests(status);
+
+-- Enable RLS
+ALTER TABLE support_requests ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can insert (public form)
+CREATE POLICY support_requests_insert ON support_requests
+    FOR INSERT WITH CHECK (true);
+
+-- Only admins can view/update
+CREATE POLICY support_requests_admin_select ON support_requests
+    FOR SELECT USING (
+        EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid())
+    );
+
+CREATE POLICY support_requests_admin_update ON support_requests
+    FOR UPDATE USING (
+        EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid())
+    );
+
+-- ============================================
 -- FUNCTIONS & TRIGGERS
 -- ============================================
 
