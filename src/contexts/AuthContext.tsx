@@ -12,40 +12,52 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
 
   const determineUserType = useCallback(async (userId: string): Promise<UserType> => {
-    // Check if user is an admin
-    const { data: adminData } = await supabase
-      .from('admins')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
+    try {
+      // Check if user is an admin
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
 
-    if (adminData) {
-      return 'admin';
+      if (!adminError && adminData) {
+        return 'admin';
+      }
+
+      // Check if user is a provider
+      const { data: providerData, error: providerError } = await supabase
+        .from('providers')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (!providerError && providerData) {
+        return 'provider';
+      }
+
+      return null;
+    } catch (err) {
+      console.error('Error determining user type:', err);
+      return null;
     }
-
-    // Check if user is a provider
-    const { data: providerData } = await supabase
-      .from('providers')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
-
-    if (providerData) {
-      return 'provider';
-    }
-
-    return null;
   }, []);
 
   const refreshSession = useCallback(async () => {
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
-    setSession(currentSession);
-    setUser(currentSession?.user ?? null);
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
 
-    if (currentSession?.user) {
-      const type = await determineUserType(currentSession.user.id);
-      setUserType(type);
-    } else {
+      if (currentSession?.user) {
+        const type = await determineUserType(currentSession.user.id);
+        setUserType(type);
+      } else {
+        setUserType(null);
+      }
+    } catch (err) {
+      console.error('Error refreshing session:', err);
+      setSession(null);
+      setUser(null);
       setUserType(null);
     }
   }, [determineUserType]);
