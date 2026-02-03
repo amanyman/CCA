@@ -77,7 +77,17 @@ export function ProviderSignup() {
       if (signUpError) throw signUpError;
 
       // Get user from data.user or data.session.user
-      const newUser = data.user || data.session?.user;
+      let newUser = data.user || data.session?.user;
+
+      // If no session yet, sign in to establish it
+      if (!data.session) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+        if (signInError) throw signInError;
+        newUser = signInData.user;
+      }
 
       if (!newUser) {
         throw new Error('Account created but unable to get user data. Please try logging in.');
