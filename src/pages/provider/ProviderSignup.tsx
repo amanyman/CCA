@@ -59,6 +59,11 @@ export function ProviderSignup() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const showError = (message: string) => {
+    setErrors({ submit: message });
+    setIsLoading(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -67,82 +72,67 @@ export function ProviderSignup() {
     setIsLoading(true);
     setErrors({});
 
-    try {
-      // Try to sign up the user
-      const { data, error: signUpError } = await supabase.auth.signUp({
+    // Step 1: Try to sign up
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+    });
+
+    // If user already exists, show error
+    if (signUpError) {
+      if (signUpError.message.toLowerCase().includes('already')) {
+        showError('An account with this email already exists. Please sign in instead.');
+      } else {
+        showError(signUpError.message);
+      }
+      return;
+    }
+
+    // Step 2: If signup succeeded but no session, sign in
+    let userId = signUpData?.user?.id;
+
+    if (!signUpData?.session) {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      let newUser = data?.user || data?.session?.user;
-
-      // If signup failed because user exists, try signing in
-      if (signUpError) {
-        if (signUpError.message.includes('already registered') || signUpError.message.includes('already exists')) {
-          throw new Error('An account with this email already exists. Please sign in instead.');
-        }
-        throw signUpError;
+      if (signInError) {
+        showError('Account created but sign in failed. Please go to the login page.');
+        return;
       }
+      userId = signInData?.user?.id;
+    }
 
-      // If no session yet, sign in to establish it
-      if (!data?.session) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
-        if (signInError) {
-          throw new Error(`Sign in failed: ${signInError.message}`);
-        }
-        newUser = signInData.user;
-      }
+    if (!userId) {
+      showError('Could not get user ID. Please try logging in.');
+      return;
+    }
 
-      if (!newUser) {
-        throw new Error('Account created but unable to get user data. Please try logging in.');
-      }
+    // Step 3: Create provider record
+    const { error: providerError } = await supabase.from('providers').insert({
+      user_id: userId,
+      agency_name: formData.agencyName,
+      email: formData.email,
+      phone: formData.phone,
+      main_contact_name: formData.contactName,
+      main_contact_phone: formData.phone,
+      main_contact_email: formData.email,
+      address: '',
+    });
 
-      // Check if provider record already exists
-      const { data: existingProvider } = await supabase
-        .from('providers')
-        .select('id')
-        .eq('user_id', newUser.id)
-        .single();
-
-      if (existingProvider) {
-        // Provider already exists, just navigate to dashboard
+    if (providerError) {
+      // If duplicate, just go to dashboard
+      if (providerError.code === '23505') {
         navigate('/provider/dashboard');
         return;
       }
-
-      // Create provider record
-      const { error: providerError } = await supabase.from('providers').insert({
-        user_id: newUser.id,
-        agency_name: formData.agencyName,
-        email: formData.email,
-        phone: formData.phone,
-        main_contact_name: formData.contactName,
-        main_contact_phone: formData.phone,
-        main_contact_email: formData.email,
-        address: '',
-      });
-
-      if (providerError) {
-        console.error('Provider insert error:', providerError);
-        // If it's a unique constraint error, provider might already exist
-        if (providerError.code === '23505') {
-          navigate('/provider/dashboard');
-          return;
-        }
-        throw new Error(`Failed to create provider profile: ${providerError.message}`);
-      }
-
-      navigate('/provider/dashboard');
-    } catch (err) {
-      console.error('Signup error:', err);
-      setErrors({
-        submit: err instanceof Error ? err.message : 'An error occurred during signup',
-      });
-      setIsLoading(false);
+      showError('Failed to create profile: ' + providerError.message);
+      return;
     }
+
+    // Success - go to dashboard
+    navigate('/provider/dashboard');
   };
 
   const handleChange = (field: keyof FormData, value: string) => {
