@@ -21,11 +21,19 @@ export function ProtectedRoute({ children, allowedUserType, redirectTo }: Protec
     );
   }
 
+  // Not logged in - redirect to login
   if (!user) {
     const loginPath = allowedUserType === 'admin' ? '/admin/login' : '/provider/login';
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
+  // User exists but userType is null - could be new signup or DB issue
+  // Just render the page and let it handle the missing data
+  if (!userType) {
+    return <>{children}</>;
+  }
+
+  // Wrong user type - redirect to correct dashboard
   if (userType !== allowedUserType) {
     const fallbackPath = redirectTo || (userType === 'admin' ? '/admin/dashboard' : '/provider/dashboard');
     return <Navigate to={fallbackPath} replace />;
