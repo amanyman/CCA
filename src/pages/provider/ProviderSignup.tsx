@@ -124,15 +124,15 @@ export function ProviderSignup() {
     if (providerError) {
       // If duplicate, just go to dashboard
       if (providerError.code === '23505') {
-        navigate('/provider/dashboard');
+        window.location.href = '/provider/dashboard';
         return;
       }
       showError('Failed to create profile: ' + providerError.message);
       return;
     }
 
-    // Success - go to dashboard
-    navigate('/provider/dashboard');
+    // Success - go to dashboard (use window.location for hard refresh)
+    window.location.href = '/provider/dashboard';
   };
 
   const handleChange = (field: keyof FormData, value: string) => {
