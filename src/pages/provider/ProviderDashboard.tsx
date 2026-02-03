@@ -34,36 +34,51 @@ export function ProviderDashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
 
-      // Get provider data
-      const { data: providerData } = await supabase
-        .from('providers')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (providerData) {
-        setProvider(providerData);
-
-        // Get referrals
-        const { data: referrals } = await supabase
-          .from('referrals')
+      try {
+        // Get provider data
+        const { data: providerData, error: providerError } = await supabase
+          .from('providers')
           .select('*')
-          .eq('provider_id', providerData.id)
-          .order('created_at', { ascending: false });
+          .eq('user_id', user.id)
+          .single();
 
-        if (referrals) {
-          setRecentReferrals(referrals.slice(0, 5));
-          setStats({
-            total: referrals.length,
-            pending: referrals.filter((r) => r.status === 'pending').length,
-            accepted: referrals.filter((r) => r.status === 'accepted').length,
-            rejected: referrals.filter((r) => r.status === 'rejected').length,
-            inProgress: referrals.filter((r) => r.status === 'in_progress').length,
-            closed: referrals.filter((r) => r.status === 'closed').length,
-          });
+        if (providerError) {
+          console.error('Error fetching provider:', providerError);
+          setIsLoading(false);
+          return;
         }
+
+        if (providerData) {
+          setProvider(providerData);
+
+          // Get referrals
+          const { data: referrals, error: referralsError } = await supabase
+            .from('referrals')
+            .select('*')
+            .eq('provider_id', providerData.id)
+            .order('created_at', { ascending: false });
+
+          if (referralsError) {
+            console.error('Error fetching referrals:', referralsError);
+          } else if (referrals) {
+            setRecentReferrals(referrals.slice(0, 5));
+            setStats({
+              total: referrals.length,
+              pending: referrals.filter((r) => r.status === 'pending').length,
+              accepted: referrals.filter((r) => r.status === 'accepted').length,
+              rejected: referrals.filter((r) => r.status === 'rejected').length,
+              inProgress: referrals.filter((r) => r.status === 'in_progress').length,
+              closed: referrals.filter((r) => r.status === 'closed').length,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Dashboard fetch error:', err);
       }
 
       setIsLoading(false);
