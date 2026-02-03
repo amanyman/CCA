@@ -17,7 +17,6 @@ interface FormErrors {
 }
 
 export function ProviderSignup() {
-  const { signUp } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState<FormData>({
     email: '',
