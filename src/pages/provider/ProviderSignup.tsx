@@ -68,29 +68,49 @@ export function ProviderSignup() {
     setErrors({});
 
     try {
-      // Sign up the user
+      // Try to sign up the user
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
       });
 
-      if (signUpError) throw signUpError;
+      let newUser = data?.user || data?.session?.user;
 
-      // Get user from data.user or data.session.user
-      let newUser = data.user || data.session?.user;
+      // If signup failed because user exists, try signing in
+      if (signUpError) {
+        if (signUpError.message.includes('already registered') || signUpError.message.includes('already exists')) {
+          throw new Error('An account with this email already exists. Please sign in instead.');
+        }
+        throw signUpError;
+      }
 
       // If no session yet, sign in to establish it
-      if (!data.session) {
+      if (!data?.session) {
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
-        if (signInError) throw signInError;
+        if (signInError) {
+          throw new Error(`Sign in failed: ${signInError.message}`);
+        }
         newUser = signInData.user;
       }
 
       if (!newUser) {
         throw new Error('Account created but unable to get user data. Please try logging in.');
+      }
+
+      // Check if provider record already exists
+      const { data: existingProvider } = await supabase
+        .from('providers')
+        .select('id')
+        .eq('user_id', newUser.id)
+        .single();
+
+      if (existingProvider) {
+        // Provider already exists, just navigate to dashboard
+        navigate('/provider/dashboard');
+        return;
       }
 
       // Create provider record
@@ -107,6 +127,11 @@ export function ProviderSignup() {
 
       if (providerError) {
         console.error('Provider insert error:', providerError);
+        // If it's a unique constraint error, provider might already exist
+        if (providerError.code === '23505') {
+          navigate('/provider/dashboard');
+          return;
+        }
         throw new Error(`Failed to create provider profile: ${providerError.message}`);
       }
 
@@ -116,7 +141,6 @@ export function ProviderSignup() {
       setErrors({
         submit: err instanceof Error ? err.message : 'An error occurred during signup',
       });
-    } finally {
       setIsLoading(false);
     }
   };
