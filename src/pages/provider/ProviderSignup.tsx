@@ -72,67 +72,87 @@ export function ProviderSignup() {
     setIsLoading(true);
     setErrors({});
 
-    // Step 1: Try to sign up
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-    });
+    try {
+      console.log('Step 1: Starting signup...');
 
-    // If user already exists, show error
-    if (signUpError) {
-      if (signUpError.message.toLowerCase().includes('already')) {
-        showError('An account with this email already exists. Please sign in instead.');
-      } else {
-        showError(signUpError.message);
-      }
-      return;
-    }
-
-    // Step 2: If signup succeeded but no session, sign in
-    let userId = signUpData?.user?.id;
-
-    if (!signUpData?.session) {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // Step 1: Try to sign up
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
       });
 
-      if (signInError) {
-        showError('Account created but sign in failed. Please go to the login page.');
+      console.log('Step 1 complete:', { signUpData, signUpError });
+
+      // If user already exists, show error
+      if (signUpError) {
+        if (signUpError.message.toLowerCase().includes('already')) {
+          showError('An account with this email already exists. Please sign in instead.');
+        } else {
+          showError(signUpError.message);
+        }
         return;
       }
-      userId = signInData?.user?.id;
-    }
 
-    if (!userId) {
-      showError('Could not get user ID. Please try logging in.');
-      return;
-    }
+      // Step 2: If signup succeeded but no session, sign in
+      let userId = signUpData?.user?.id;
+      console.log('Step 2: userId from signup:', userId);
 
-    // Step 3: Create provider record
-    const { error: providerError } = await supabase.from('providers').insert({
-      user_id: userId,
-      agency_name: formData.agencyName,
-      email: formData.email,
-      phone: formData.phone,
-      main_contact_name: formData.contactName,
-      main_contact_phone: formData.phone,
-      main_contact_email: formData.email,
-      address: '',
-    });
+      if (!signUpData?.session) {
+        console.log('Step 2: No session, signing in...');
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
 
-    if (providerError) {
-      // If duplicate, just go to dashboard
-      if (providerError.code === '23505') {
-        window.location.href = '/provider/dashboard';
+        console.log('Step 2 complete:', { signInData, signInError });
+
+        if (signInError) {
+          showError('Account created but sign in failed. Please go to the login page.');
+          return;
+        }
+        userId = signInData?.user?.id;
+      }
+
+      if (!userId) {
+        showError('Could not get user ID. Please try logging in.');
         return;
       }
-      showError('Failed to create profile: ' + providerError.message);
-      return;
-    }
 
-    // Success - go to dashboard (use window.location for hard refresh)
-    window.location.href = '/provider/dashboard';
+      console.log('Step 3: Creating provider with userId:', userId);
+
+      // Step 3: Create provider record
+      const { error: providerError } = await supabase.from('providers').insert({
+        user_id: userId,
+        agency_name: formData.agencyName,
+        email: formData.email,
+        phone: formData.phone,
+        main_contact_name: formData.contactName,
+        main_contact_phone: formData.phone,
+        main_contact_email: formData.email,
+        address: '',
+      });
+
+      console.log('Step 3 complete:', { providerError });
+
+      if (providerError) {
+        // If duplicate, just go to dashboard
+        if (providerError.code === '23505') {
+          console.log('Provider exists, redirecting...');
+          window.location.href = '/provider/dashboard';
+          return;
+        }
+        showError('Failed to create profile: ' + providerError.message);
+        return;
+      }
+
+      // Success - go to dashboard
+      console.log('Success! Redirecting to dashboard...');
+      setIsLoading(false);
+      window.location.href = '/provider/dashboard';
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      showError('An unexpected error occurred. Please try again.');
+    }
   };
 
   const handleChange = (field: keyof FormData, value: string) => {
