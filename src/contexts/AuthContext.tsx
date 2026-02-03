@@ -65,8 +65,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initAuth = async () => {
       setIsLoading(true);
-      await refreshSession();
-      setIsLoading(false);
+
+      // Add timeout to prevent infinite loading
+      const timeout = setTimeout(() => {
+        console.warn('Auth initialization timed out');
+        setIsLoading(false);
+      }, 5000);
+
+      try {
+        await refreshSession();
+      } catch (err) {
+        console.error('Auth init error:', err);
+      } finally {
+        clearTimeout(timeout);
+        setIsLoading(false);
+      }
     };
 
     initAuth();
@@ -76,8 +89,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(newSession?.user ?? null);
 
       if (newSession?.user) {
-        const type = await determineUserType(newSession.user.id);
-        setUserType(type);
+        try {
+          const type = await determineUserType(newSession.user.id);
+          setUserType(type);
+        } catch (err) {
+          console.error('Error in onAuthStateChange:', err);
+          setUserType(null);
+        }
       } else {
         setUserType(null);
       }
