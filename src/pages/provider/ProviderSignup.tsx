@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Loader2, Mail, Lock, AlertCircle, Building2, User, Phone } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Loader2, Mail, Lock, AlertCircle, Building2, User, Phone, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface FormData {
@@ -17,7 +17,6 @@ interface FormErrors {
 }
 
 export function ProviderSignup() {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -28,6 +27,7 @@ export function ProviderSignup() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -59,11 +59,6 @@ export function ProviderSignup() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const showError = (message: string) => {
-    setErrors({ submit: message });
-    setIsLoading(false);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -73,52 +68,44 @@ export function ProviderSignup() {
     setErrors({});
 
     try {
-      console.log('Step 1: Starting signup...');
-
-      // Step 1: Try to sign up
+      // Step 1: Sign up
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
       });
 
-      console.log('Step 1 complete:', { signUpData, signUpError });
-
-      // If user already exists, show error
       if (signUpError) {
         if (signUpError.message.toLowerCase().includes('already')) {
-          showError('An account with this email already exists. Please sign in instead.');
+          setErrors({ submit: 'An account with this email already exists. Please sign in instead.' });
         } else {
-          showError(signUpError.message);
+          setErrors({ submit: signUpError.message });
         }
+        setIsLoading(false);
         return;
       }
 
-      // Step 2: If signup succeeded but no session, sign in
+      // Step 2: Sign in to get session
       let userId = signUpData?.user?.id;
-      console.log('Step 2: userId from signup:', userId);
 
       if (!signUpData?.session) {
-        console.log('Step 2: No session, signing in...');
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
 
-        console.log('Step 2 complete:', { signInData, signInError });
-
         if (signInError) {
-          showError('Account created but sign in failed. Please go to the login page.');
+          setErrors({ submit: 'Account created! Please go to the login page to sign in.' });
+          setIsLoading(false);
           return;
         }
         userId = signInData?.user?.id;
       }
 
       if (!userId) {
-        showError('Could not get user ID. Please try logging in.');
+        setErrors({ submit: 'Account created! Please go to the login page to sign in.' });
+        setIsLoading(false);
         return;
       }
-
-      console.log('Step 3: Creating provider with userId:', userId);
 
       // Step 3: Create provider record
       const { error: providerError } = await supabase.from('providers').insert({
@@ -132,26 +119,18 @@ export function ProviderSignup() {
         address: '',
       });
 
-      console.log('Step 3 complete:', { providerError });
-
-      if (providerError) {
-        // If duplicate, just go to dashboard
-        if (providerError.code === '23505') {
-          console.log('Provider exists, redirecting...');
-          window.location.href = '/provider/dashboard';
-          return;
-        }
-        showError('Failed to create profile: ' + providerError.message);
+      if (providerError && providerError.code !== '23505') {
+        setErrors({ submit: 'Account created but profile setup failed. Please contact support.' });
+        setIsLoading(false);
         return;
       }
 
-      // Success - go to dashboard
-      console.log('Success! Redirecting to dashboard...');
+      // Success!
       setIsLoading(false);
-      window.location.href = '/provider/dashboard';
+      setIsSuccess(true);
     } catch (err) {
-      console.error('Unexpected error:', err);
-      showError('An unexpected error occurred. Please try again.');
+      setErrors({ submit: 'An unexpected error occurred. Please try again.' });
+      setIsLoading(false);
     }
   };
 
@@ -161,6 +140,31 @@ export function ProviderSignup() {
       setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
+
+  // Success screen
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30 px-4 py-8">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800 mb-2">Account Created!</h1>
+            <p className="text-slate-600 mb-6">
+              Welcome to California Care Alliance, {formData.contactName}!
+            </p>
+            <Link
+              to="/provider/dashboard"
+              className="block w-full bg-blue-900 text-white py-3 rounded-lg hover:bg-blue-950 transition-colors font-semibold text-center"
+            >
+              Go to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30 px-4 py-8">
