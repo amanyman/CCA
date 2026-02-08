@@ -13,7 +13,7 @@ const PAGE_SIZE = 15;
 
 const statusOptions: { value: ReferralStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'All Status' },
-  { value: 'pending', label: 'Pending' },
+  { value: 'pending', label: 'Processing' },
   { value: 'accepted', label: 'Accepted' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'in_progress', label: 'In Progress' },

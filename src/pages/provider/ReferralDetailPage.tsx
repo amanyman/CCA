@@ -149,7 +149,7 @@ export function ReferralDetailPage() {
                 <h2 className="text-xl font-bold text-slate-800">{referral.customer_name}</h2>
                 <p className="text-slate-500">Submitted {formatDate(referral.created_at)}</p>
               </div>
-              <StatusBadge status={referral.status} />
+              <StatusBadge status={referral.status} providerView />
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">

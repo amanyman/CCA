@@ -54,10 +54,10 @@ export function ReferralForm() {
     setIsSubmitting(true);
 
     try {
-      // First get the provider ID
+      // First get the provider ID and agency name
       const { data: providerData, error: providerError } = await supabase
         .from('providers')
-        .select('id')
+        .select('id, agency_name')
         .eq('user_id', user.id)
         .single();
 
@@ -77,6 +77,21 @@ export function ReferralForm() {
       });
 
       if (error) throw error;
+
+      // Send admin notification email (fire-and-forget, don't block on failure)
+      supabase.functions.invoke('send-referral-notification', {
+        body: {
+          customerName: formData.customer_name.trim(),
+          customerPhone: formData.customer_phone.trim(),
+          customerEmail: formData.customer_email.trim() || undefined,
+          accidentDate: formData.accident_date || undefined,
+          peopleInvolved: formData.people_involved ? parseInt(formData.people_involved) : undefined,
+          atFaultStatus: formData.at_fault_status || undefined,
+          agencyName: providerData.agency_name,
+        },
+      }).catch(() => {
+        // Notification failure should not affect the referral submission
+      });
 
       setIsSuccess(true);
       setTimeout(() => {

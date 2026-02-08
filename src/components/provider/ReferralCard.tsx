@@ -41,7 +41,7 @@ export function ReferralCard({ referral }: ReferralCardProps) {
           <p className="text-sm text-slate-500">Submitted {formatDate(referral.created_at)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <StatusBadge status={referral.status} />
+          <StatusBadge status={referral.status} providerView />
           <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-blue-900 transition-colors" />
         </div>
       </div>

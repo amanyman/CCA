@@ -2,11 +2,13 @@ import { ReferralStatus } from '../../types/referral';
 
 interface StatusBadgeProps {
   status: ReferralStatus;
+  providerView?: boolean;
 }
 
-const statusConfig: Record<ReferralStatus, { label: string; className: string }> = {
+const statusConfig: Record<ReferralStatus, { label: string; providerLabel?: string; className: string }> = {
   pending: {
     label: 'Pending',
+    providerLabel: 'Processing',
     className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   },
   accepted: {
@@ -27,14 +29,15 @@ const statusConfig: Record<ReferralStatus, { label: string; className: string }>
   },
 };
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, providerView }: StatusBadgeProps) {
   const config = statusConfig[status];
+  const displayLabel = providerView && config.providerLabel ? config.providerLabel : config.label;
 
   return (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${config.className}`}
     >
-      {config.label}
+      {displayLabel}
     </span>
   );
 }
