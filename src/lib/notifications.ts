@@ -8,21 +8,12 @@ export async function notifyAdmins(
   referralId?: string
 ) {
   try {
-    const { data: admins } = await supabase
-      .from('admins')
-      .select('user_id');
-
-    if (!admins || admins.length === 0) return;
-
-    const notifications = admins.map((admin) => ({
-      user_id: admin.user_id,
-      type,
-      title,
-      message,
-      referral_id: referralId || null,
-    }));
-
-    await supabase.from('notifications').insert(notifications);
+    await supabase.rpc('notify_all_admins', {
+      p_type: type,
+      p_title: title,
+      p_message: message,
+      p_referral_id: referralId || null,
+    });
   } catch (err) {
     console.error('Error notifying admins:', err);
   }

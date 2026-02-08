@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Mail, Lock, AlertCircle, Building2, User, Phone, CheckCircle } from 'lucide-react';
+import { Loader2, Mail, Lock, AlertCircle, Building2, User, Phone, CheckCircle, MapPin } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { notifyAdmins } from '../../lib/notifications';
 import { validatePassword, sanitizeText, isRateLimited } from '../../lib/validation';
@@ -10,6 +10,7 @@ interface FormData {
   password: string;
   confirmPassword: string;
   agencyName: string;
+  address: string;
   businessPhone: string;
   contactName: string;
   contactPhone: string;
@@ -28,6 +29,7 @@ export function ProviderSignup() {
     password: '',
     confirmPassword: '',
     agencyName: '',
+    address: '',
     businessPhone: '',
     contactName: '',
     contactPhone: '',
@@ -54,6 +56,9 @@ export function ProviderSignup() {
     }
     if (!formData.agencyName.trim()) {
       newErrors.agencyName = 'Agency name is required';
+    }
+    if (!formData.address.trim()) {
+      newErrors.address = 'Business address is required';
     }
     if (!formData.businessPhone.trim()) {
       newErrors.businessPhone = 'Business phone is required';
@@ -141,7 +146,7 @@ export function ProviderSignup() {
         main_contact_name: sanitizeText(formData.contactName),
         main_contact_phone: sanitizeText(formData.contactPhone),
         main_contact_email: formData.contactEmail.trim().toLowerCase(),
-        address: '',
+        address: sanitizeText(formData.address),
       });
 
       if (providerError && providerError.code !== '23505') {
@@ -243,6 +248,25 @@ export function ProviderSignup() {
                     />
                   </div>
                   {errors.agencyName && <p className="mt-1 text-sm text-red-500">{errors.agencyName}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Business Address <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="text"
+                      value={formData.address}
+                      onChange={(e) => handleChange('address', e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        errors.address ? 'border-red-300' : 'border-slate-300'
+                      }`}
+                      placeholder="123 Main St, City, CA 90001"
+                    />
+                  </div>
+                  {errors.address && <p className="mt-1 text-sm text-red-500">{errors.address}</p>}
                 </div>
 
                 <div>
