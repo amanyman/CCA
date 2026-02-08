@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoginForm } from '../../components/auth/LoginForm';
@@ -7,7 +7,6 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 export function AdminLogin() {
   const { signIn, user, userType, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Redirect if already logged in as admin
   useEffect(() => {
@@ -21,21 +20,13 @@ export function AdminLogin() {
     if (error) {
       throw error;
     }
-    setIsRedirecting(true);
+    navigate('/admin/dashboard', { replace: true });
   };
 
-  // Redirect once auth state updates after login
-  useEffect(() => {
-    if (isRedirecting && !isLoading && user && userType === 'admin') {
-      navigate('/admin/dashboard', { replace: true });
-    }
-  }, [isRedirecting, isLoading, user, userType, navigate]);
-
-  // Show loading if checking auth or redirecting
-  if (isLoading || isRedirecting) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
-        <LoadingSpinner size="lg" message={isRedirecting ? "Redirecting to dashboard..." : "Loading..."} />
+        <LoadingSpinner size="lg" message="Loading..." />
       </div>
     );
   }

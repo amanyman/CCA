@@ -107,7 +107,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [determineUserType, refreshSession]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error && data.user) {
+      setUser(data.user);
+      setSession(data.session);
+      const type = await determineUserType(data.user.id);
+      setUserType(type);
+    }
     return { error: error as Error | null };
   };
 
