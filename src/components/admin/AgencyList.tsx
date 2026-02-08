@@ -166,8 +166,8 @@ export function AgencyList() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start flex-wrap">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto] gap-3">
+        <div className="relative sm:col-span-2 lg:col-span-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <input
             type="text"
@@ -178,13 +178,13 @@ export function AgencyList() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-slate-400" />
+          <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
           <input
             type="text"
             placeholder="Zip from"
             value={zipMin}
             onChange={(e) => setZipMin(e.target.value.replace(/\D/g, '').slice(0, 5))}
-            className="w-28 px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-sm"
+            className="w-full sm:w-24 px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-sm"
           />
           <span className="text-slate-400">–</span>
           <input
@@ -192,7 +192,7 @@ export function AgencyList() {
             placeholder="Zip to"
             value={zipMax}
             onChange={(e) => setZipMax(e.target.value.replace(/\D/g, '').slice(0, 5))}
-            className="w-28 px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-sm"
+            className="w-full sm:w-24 px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-sm"
           />
         </div>
         <button
@@ -215,7 +215,7 @@ export function AgencyList() {
             }));
             exportToCSV(exportData, 'agencies');
           }}
-          className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors font-medium text-sm whitespace-nowrap"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors font-medium text-sm whitespace-nowrap"
         >
           <Download className="w-4 h-4" />
           Export CSV
@@ -236,14 +236,14 @@ export function AgencyList() {
           </p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {paginatedAgencies.map((agency) => {
             const zip = extractZip(agency.address);
             return (
               <Link
                 key={agency.id}
                 to={`/admin/agencies/${agency.id}`}
-                className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all group"
+                className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all group overflow-hidden"
               >
                 {/* Header */}
                 <div className="flex items-start gap-3 mb-4">
@@ -259,21 +259,21 @@ export function AgencyList() {
                 </div>
 
                 {/* Contact Info */}
-                <div className="space-y-1.5 mb-4 text-sm">
-                  <div className="flex items-center gap-2 text-slate-600">
+                <div className="space-y-1.5 mb-4 text-sm overflow-hidden">
+                  <div className="flex items-center gap-2 text-slate-600 min-w-0">
                     <Mail className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                     <span className="truncate">{agency.email}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-600">
+                  <div className="flex items-center gap-2 text-slate-600 min-w-0">
                     <Phone className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                    <span>{agency.phone}</span>
+                    <span className="truncate">{agency.phone}</span>
                   </div>
                   {agency.address && (
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-slate-600 min-w-0">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span className="truncate">{agency.address}</span>
+                      <span className="truncate flex-1">{agency.address}</span>
                       {zip && (
-                        <span className="ml-auto text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono flex-shrink-0">
+                        <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono flex-shrink-0">
                           {zip}
                         </span>
                       )}
@@ -287,7 +287,7 @@ export function AgencyList() {
                     <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Referrals</span>
                     <span className="text-sm font-bold text-slate-800">{agency.totalReferrals}</span>
                   </div>
-                  <div className="flex gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     <div className="flex items-center gap-1 text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded-md">
                       <Clock className="w-3 h-3" />
                       {agency.pendingCount}
