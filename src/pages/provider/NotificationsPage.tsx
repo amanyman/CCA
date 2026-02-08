@@ -121,17 +121,23 @@ export function ProviderNotificationsPage() {
               <button
                 key={notification.id}
                 onClick={() => handleClick(notification)}
-                className={`w-full text-left px-6 py-4 hover:bg-slate-50 transition-colors ${
-                  !notification.is_read ? 'bg-blue-50/40' : ''
+                className={`w-full text-left px-6 py-4 transition-colors ${
+                  !notification.is_read
+                    ? 'bg-blue-50 border-l-4 border-l-blue-500 hover:bg-blue-100/60'
+                    : 'hover:bg-slate-50 border-l-4 border-l-transparent opacity-75'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   {!notification.is_read && (
-                    <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2" />
+                    <span className="w-2.5 h-2.5 bg-blue-500 rounded-full flex-shrink-0 mt-1.5" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-slate-800">{notification.title}</div>
-                    <p className="text-sm text-slate-600 mt-0.5">{notification.message}</p>
+                    <div className={`${!notification.is_read ? 'font-bold text-slate-900' : 'font-medium text-slate-600'}`}>
+                      {notification.title}
+                    </div>
+                    <p className={`text-sm mt-0.5 ${!notification.is_read ? 'text-slate-700' : 'text-slate-500'}`}>
+                      {notification.message}
+                    </p>
                     <p className="text-xs text-slate-400 mt-1">{formatDateTime(notification.created_at)}</p>
                   </div>
                 </div>
