@@ -8,6 +8,7 @@ import { Referral } from '../../types/referral';
 import { Provider } from '../../types/provider';
 import { ReferralCard } from '../../components/provider/ReferralCard';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { Tutorial } from '../../components/provider/Tutorial';
 
 interface DashboardStats {
   total: number;
@@ -32,6 +33,9 @@ export function ProviderDashboard() {
     closed: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(
+    () => !localStorage.getItem('cca_tutorial_seen')
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -236,6 +240,7 @@ export function ProviderDashboard() {
           )}
         </div>
       </div>
+      <Tutorial isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
     </ProviderLayout>
   );
 }
