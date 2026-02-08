@@ -27,12 +27,12 @@ export async function notifyUser(
   referralId?: string
 ) {
   try {
-    await supabase.from('notifications').insert({
-      user_id: userId,
-      type,
-      title,
-      message,
-      referral_id: referralId || null,
+    await supabase.rpc('notify_user', {
+      p_user_id: userId,
+      p_type: type,
+      p_title: title,
+      p_message: message,
+      p_referral_id: referralId || null,
     });
   } catch (err) {
     console.error('Error notifying user:', err);
