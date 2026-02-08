@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Building2, Phone, Mail, MapPin, User, FileText, TrendingUp, DollarSign, Clock } from 'lucide-react';
+import { ArrowLeft, Building2, Phone, Mail, MapPin, User, FileText, TrendingUp, DollarSign, Clock, Pencil, X, Loader2, Check } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { Provider } from '../../types/provider';
@@ -19,6 +19,23 @@ export function AgencyDetailPage() {
   // Cost data
   const [totalEarned, setTotalEarned] = useState(0);
   const [totalPending, setTotalPending] = useState(0);
+
+  // Edit mode
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    agency_name: '',
+    email: '',
+    phone: '',
+    address: '',
+    main_contact_name: '',
+    main_contact_email: '',
+    main_contact_phone: '',
+    secondary_contact_name: '',
+    secondary_contact_email: '',
+    secondary_contact_phone: '',
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,6 +100,75 @@ export function AgencyDetailPage() {
 
     fetchData();
   }, [id]);
+
+  const startEditing = () => {
+    if (!agency) return;
+    setEditForm({
+      agency_name: agency.agency_name || '',
+      email: agency.email || '',
+      phone: agency.phone || '',
+      address: agency.address || '',
+      main_contact_name: agency.main_contact_name || '',
+      main_contact_email: agency.main_contact_email || '',
+      main_contact_phone: agency.main_contact_phone || '',
+      secondary_contact_name: agency.secondary_contact_name || '',
+      secondary_contact_email: agency.secondary_contact_email || '',
+      secondary_contact_phone: agency.secondary_contact_phone || '',
+    });
+    setSaveError(null);
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setSaveError(null);
+  };
+
+  const handleSave = async () => {
+    if (!id || !agency) return;
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const { error: updateError } = await supabase
+        .from('providers')
+        .update({
+          agency_name: editForm.agency_name.trim(),
+          email: editForm.email.trim(),
+          phone: editForm.phone.trim(),
+          address: editForm.address.trim(),
+          main_contact_name: editForm.main_contact_name.trim(),
+          main_contact_email: editForm.main_contact_email.trim(),
+          main_contact_phone: editForm.main_contact_phone.trim(),
+          secondary_contact_name: editForm.secondary_contact_name.trim() || null,
+          secondary_contact_email: editForm.secondary_contact_email.trim() || null,
+          secondary_contact_phone: editForm.secondary_contact_phone.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      setAgency({
+        ...agency,
+        agency_name: editForm.agency_name.trim(),
+        email: editForm.email.trim(),
+        phone: editForm.phone.trim(),
+        address: editForm.address.trim(),
+        main_contact_name: editForm.main_contact_name.trim(),
+        main_contact_email: editForm.main_contact_email.trim(),
+        main_contact_phone: editForm.main_contact_phone.trim(),
+        secondary_contact_name: editForm.secondary_contact_name.trim() || null,
+        secondary_contact_email: editForm.secondary_contact_email.trim() || null,
+        secondary_contact_phone: editForm.secondary_contact_phone.trim() || null,
+      });
+      setIsEditing(false);
+    } catch {
+      setSaveError('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -169,87 +255,235 @@ export function AgencyDetailPage() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Agency Info */}
+          {/* Agency Info & Contacts */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Building2 className="w-8 h-8 text-blue-600" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">{agency.agency_name}</h2>
-                <p className="text-slate-500">Member since {formatDate(agency.created_at)}</p>
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-slate-600" />
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-8 h-8 text-blue-600" />
                 </div>
                 <div>
-                  <div className="text-sm text-slate-500">Email</div>
-                  <div className="font-medium text-slate-800">{agency.email}</div>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editForm.agency_name}
+                      onChange={(e) => setEditForm({ ...editForm, agency_name: e.target.value })}
+                      className="text-xl font-bold text-slate-800 border border-slate-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    />
+                  ) : (
+                    <h2 className="text-xl font-bold text-slate-800">{agency.agency_name}</h2>
+                  )}
+                  <p className="text-slate-500">Member since {formatDate(agency.created_at)}</p>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                  <Phone className="w-5 h-5 text-slate-600" />
-                </div>
-                <div>
-                  <div className="text-sm text-slate-500">Phone</div>
-                  <div className="font-medium text-slate-800">{agency.phone}</div>
-                </div>
-              </div>
-
-              {agency.address && (
-                <div className="flex items-center gap-3 sm:col-span-2">
-                  <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-slate-500">Address</div>
-                    <div className="font-medium text-slate-800">{agency.address}</div>
-                  </div>
+              {!isEditing ? (
+                <button
+                  onClick={startEditing}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Edit
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={cancelEditing}
+                    disabled={isSaving}
+                    className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+                  >
+                    <X className="w-4 h-4" />
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-blue-900 rounded-lg hover:bg-blue-950 transition-colors disabled:opacity-50"
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Save
+                  </button>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Contacts */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h3 className="font-semibold text-slate-800 mb-4">Contacts</h3>
-            <div className="grid sm:grid-cols-2 gap-6">
-              <div>
-                <div className="text-sm text-slate-500 mb-2">Primary Contact</div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-blue-600" />
+            {saveError && (
+              <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-4">{saveError}</p>
+            )}
+
+            {isEditing ? (
+              <div className="space-y-6">
+                {/* Agency Details */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-slate-500 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                    />
                   </div>
                   <div>
-                    <div className="font-medium text-slate-800">{agency.main_contact_name}</div>
-                    <div className="text-sm text-slate-600">{agency.main_contact_email}</div>
-                    <div className="text-sm text-slate-600">{agency.main_contact_phone}</div>
+                    <label className="block text-sm text-slate-500 mb-1">Phone</label>
+                    <input
+                      type="text"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm text-slate-500 mb-1">Address</label>
+                    <input
+                      type="text"
+                      value={editForm.address}
+                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                    />
                   </div>
                 </div>
-              </div>
 
-              {agency.secondary_contact_name && (
+                {/* Primary Contact */}
                 <div>
-                  <div className="text-sm text-slate-500 mb-2">Secondary Contact</div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-slate-600" />
+                  <h4 className="text-sm font-medium text-slate-700 mb-3">Primary Contact</h4>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm text-slate-500 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={editForm.main_contact_name}
+                        onChange={(e) => setEditForm({ ...editForm, main_contact_name: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                      />
                     </div>
                     <div>
-                      <div className="font-medium text-slate-800">{agency.secondary_contact_name}</div>
-                      <div className="text-sm text-slate-600">{agency.secondary_contact_email}</div>
-                      <div className="text-sm text-slate-600">{agency.secondary_contact_phone}</div>
+                      <label className="block text-sm text-slate-500 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={editForm.main_contact_email}
+                        onChange={(e) => setEditForm({ ...editForm, main_contact_email: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-500 mb-1">Phone</label>
+                      <input
+                        type="text"
+                        value={editForm.main_contact_phone}
+                        onChange={(e) => setEditForm({ ...editForm, main_contact_phone: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                      />
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
+
+                {/* Secondary Contact */}
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 mb-3">Secondary Contact</h4>
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm text-slate-500 mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={editForm.secondary_contact_name}
+                        onChange={(e) => setEditForm({ ...editForm, secondary_contact_name: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-500 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={editForm.secondary_contact_email}
+                        onChange={(e) => setEditForm({ ...editForm, secondary_contact_email: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-500 mb-1">Phone</label>
+                      <input
+                        type="text"
+                        value={editForm.secondary_contact_phone}
+                        onChange={(e) => setEditForm({ ...editForm, secondary_contact_phone: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid sm:grid-cols-2 gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-slate-500">Email</div>
+                      <div className="font-medium text-slate-800">{agency.email}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                      <Phone className="w-5 h-5 text-slate-600" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-slate-500">Phone</div>
+                      <div className="font-medium text-slate-800">{agency.phone}</div>
+                    </div>
+                  </div>
+
+                  {agency.address && (
+                    <div className="flex items-center gap-3 sm:col-span-2">
+                      <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-slate-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm text-slate-500">Address</div>
+                        <div className="font-medium text-slate-800">{agency.address}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Contacts */}
+                <div className="border-t border-slate-100 pt-6">
+                  <h3 className="font-semibold text-slate-800 mb-4">Contacts</h3>
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div>
+                      <div className="text-sm text-slate-500 mb-2">Primary Contact</div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-800">{agency.main_contact_name}</div>
+                          <div className="text-sm text-slate-600">{agency.main_contact_email}</div>
+                          <div className="text-sm text-slate-600">{agency.main_contact_phone}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {agency.secondary_contact_name && (
+                      <div>
+                        <div className="text-sm text-slate-500 mb-2">Secondary Contact</div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+                            <User className="w-5 h-5 text-slate-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-slate-800">{agency.secondary_contact_name}</div>
+                            <div className="text-sm text-slate-600">{agency.secondary_contact_email}</div>
+                            <div className="text-sm text-slate-600">{agency.secondary_contact_phone}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Error Banner */}
