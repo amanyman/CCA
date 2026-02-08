@@ -108,7 +108,9 @@ export function ReferralTable() {
     currentPage * PAGE_SIZE
   );
 
-  const allPageSelected = paginatedReferrals.length > 0 && paginatedReferrals.every(r => selectedIds.has(r.id));
+  // Only pending referrals can be selected for bulk status changes (non-pending are locked)
+  const selectableReferrals = paginatedReferrals.filter(r => r.status === 'pending');
+  const allPageSelected = selectableReferrals.length > 0 && selectableReferrals.every(r => selectedIds.has(r.id));
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -126,13 +128,13 @@ export function ReferralTable() {
     if (allPageSelected) {
       setSelectedIds(prev => {
         const next = new Set(prev);
-        paginatedReferrals.forEach(r => next.delete(r.id));
+        selectableReferrals.forEach(r => next.delete(r.id));
         return next;
       });
     } else {
       setSelectedIds(prev => {
         const next = new Set(prev);
-        paginatedReferrals.forEach(r => next.add(r.id));
+        selectableReferrals.forEach(r => next.add(r.id));
         return next;
       });
     }
@@ -332,7 +334,9 @@ export function ReferralTable() {
                         type="checkbox"
                         checked={selectedIds.has(referral.id)}
                         onChange={() => toggleSelect(referral.id)}
-                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        disabled={referral.status !== 'pending'}
+                        title={referral.status !== 'pending' ? 'Status is locked' : undefined}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-30 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="px-6 py-4">
