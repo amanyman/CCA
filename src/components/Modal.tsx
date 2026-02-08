@@ -57,8 +57,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       <div
         ref={modalRef}
         tabIndex={-1}
-        className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl"
-        style={{ maxWidth: '100vw' }}
+        className="relative w-full max-w-lg max-h-[80vh] overflow-y-auto bg-white rounded-2xl shadow-2xl"
       >
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white border-b border-slate-100 rounded-t-2xl">
           <h2 id="modal-title" className="text-xl font-bold text-slate-800">
@@ -72,7 +71,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 overflow-x-hidden" style={{ minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+        <div className="px-6 py-4 overflow-x-hidden" style={{ minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           {children}
         </div>
       </div>

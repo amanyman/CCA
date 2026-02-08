@@ -163,7 +163,7 @@ export function SupportRequestForm({ onSuccess }: { onSuccess?: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 overflow-x-hidden" style={{ minWidth: 0 }}>
+    <form onSubmit={handleSubmit} className="space-y-4 overflow-x-hidden" style={{ minWidth: 0 }}>
       <div className="flex items-center justify-center gap-3 pb-4 border-b border-slate-200">
         <button
           type="button"
@@ -313,8 +313,8 @@ export function SupportRequestForm({ onSuccess }: { onSuccess?: () => void }) {
             setFormData(prev => ({ ...prev, whatHappened: e.target.value }));
             if (errors.whatHappened) setErrors(prev => ({ ...prev, whatHappened: '' }));
           }}
-          rows={4}
-          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none ${errors.whatHappened ? 'border-red-300' : 'border-slate-300'}`}
+          rows={3}
+          className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none ${errors.whatHappened ? 'border-red-300' : 'border-slate-300'}`}
           placeholder={t('what_happened_placeholder')}
         />
         {errors.whatHappened && <p className="mt-1 text-sm text-red-500">{errors.whatHappened}</p>}
