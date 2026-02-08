@@ -53,7 +53,7 @@ export function HomePage() {
               <a href="#services" onClick={(e) => smoothScroll(e, '#services')} className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base whitespace-nowrap border border-slate-200 px-3 py-1.5 rounded-md hover:bg-slate-50">{t('nav_how_we_help')}</a>
               <a href="#why-choose-us" onClick={(e) => smoothScroll(e, '#why-choose-us')} className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base whitespace-nowrap border border-slate-200 px-3 py-1.5 rounded-md hover:bg-slate-50">{t('nav_why_us')}</a>
               <a href="#broker-partner" onClick={(e) => smoothScroll(e, '#broker-partner')} className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base whitespace-nowrap border border-slate-200 px-3 py-1.5 rounded-md hover:bg-slate-50">Insurance Partners</a>
-              <Link to="/provider/login" className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base whitespace-nowrap border border-slate-200 px-3 py-1.5 rounded-md hover:bg-slate-50">Provider Portal</Link>
+              <Link to="/provider/login" className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base whitespace-nowrap border border-slate-200 px-3 py-1.5 rounded-md hover:bg-slate-50">Partner Portal</Link>
 
               <div className="flex items-center gap-2 border-l border-slate-200 pl-4 lg:pl-6">
                 <button
@@ -93,7 +93,7 @@ export function HomePage() {
               <a href="#services" onClick={(e) => smoothScroll(e, '#services')} className="block py-2 text-slate-600 hover:text-blue-900">{t('nav_how_we_help')}</a>
               <a href="#why-choose-us" onClick={(e) => smoothScroll(e, '#why-choose-us')} className="block py-2 text-slate-600 hover:text-blue-900">{t('nav_why_us')}</a>
               <a href="#broker-partner" onClick={(e) => smoothScroll(e, '#broker-partner')} className="block py-2 text-slate-600 hover:text-blue-900">Insurance Partners</a>
-              <Link to="/provider/login" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-600 hover:text-blue-900">Provider Portal</Link>
+              <Link to="/provider/login" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-slate-600 hover:text-blue-900">Partner Portal</Link>
 
               <div className="flex items-center justify-center gap-3 py-3 border-t border-slate-100">
                 <button
