@@ -90,15 +90,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (!newSession) {
         setUserType(null);
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // Re-validate user type on sign-in and token refresh
-        // This ensures revoked roles are detected promptly
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Re-validate user type on token refresh to detect revoked roles
         const type = await determineUserType(newSession.user.id);
         setUserType(type);
-        if (!type) {
-          // User exists in auth but has no valid role — sign them out
-          await supabase.auth.signOut();
-        }
       }
     });
 
