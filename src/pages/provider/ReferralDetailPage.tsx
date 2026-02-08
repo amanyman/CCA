@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ReferralWithNotes, ReferralNote } from '../../types/referral';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { notifyAdmins } from '../../lib/notifications';
 
 export function ReferralDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -106,6 +107,14 @@ export function ReferralDetailPage() {
           : prev
       );
       setMessage('');
+
+      // Notify all admins about the new message
+      notifyAdmins(
+        'new_message',
+        'New Partner Message',
+        `New message on referral for ${referral?.customer_name || 'a customer'}`,
+        id
+      );
     } catch (err) {
       console.error('Error sending message:', err);
       setSendError('Failed to send message. Please try again.');

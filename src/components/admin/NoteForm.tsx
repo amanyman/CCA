@@ -12,7 +12,6 @@ interface NoteFormProps {
 export function NoteForm({ referralId, onNoteAdded }: NoteFormProps) {
   const { user } = useAuth();
   const [note, setNote] = useState('');
-  const [isVisibleToProvider, setIsVisibleToProvider] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -43,7 +42,7 @@ export function NoteForm({ referralId, onNoteAdded }: NoteFormProps) {
           admin_id: adminData.id,
           author_type: 'admin',
           note: note.trim(),
-          is_visible_to_provider: isVisibleToProvider,
+          is_visible_to_provider: false,
         })
         .select()
         .single();
@@ -56,7 +55,6 @@ export function NoteForm({ referralId, onNoteAdded }: NoteFormProps) {
       });
 
       setNote('');
-      setIsVisibleToProvider(false);
     } catch (err) {
       console.error('Error adding note:', err);
       setError('Failed to add note. Please try again.');
@@ -81,18 +79,6 @@ export function NoteForm({ referralId, onNoteAdded }: NoteFormProps) {
         />
         <div className="text-xs text-slate-400 text-right mt-1">{note.length}/5000</div>
       </div>
-
-      <label className="flex items-center gap-2 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={isVisibleToProvider}
-          onChange={(e) => setIsVisibleToProvider(e.target.checked)}
-          className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
-        />
-        <span className={`text-sm ${isVisibleToProvider ? 'text-blue-700 font-medium' : 'text-slate-700'}`}>
-          {isVisibleToProvider ? 'Visible to partner' : 'Internal only (not visible to partner)'}
-        </span>
-      </label>
 
       {error && (
         <p className="text-sm text-red-600">{error}</p>

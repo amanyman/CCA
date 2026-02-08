@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CheckCircle, Loader2, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
+import { notifyAdmins } from '../lib/notifications';
 
 interface FormData {
   name: string;
@@ -119,6 +120,13 @@ export function SupportRequestForm({ onSuccess }: { onSuccess?: () => void }) {
       });
 
       if (error) throw error;
+
+      // Notify admins about new support request
+      notifyAdmins(
+        'new_support_request',
+        'New Support Request',
+        `${formData.name} submitted a support request for ${formData.helpType}`
+      );
 
       try {
         const emailApiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-support-email`;

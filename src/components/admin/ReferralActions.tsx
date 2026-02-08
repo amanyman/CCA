@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { CheckCircle, XCircle, Clock, FolderClosed, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { ReferralStatus } from '../../types/referral';
+import { notifyUser } from '../../lib/notifications';
 
 interface ReferralActionsProps {
   referralId: string;
   currentStatus: ReferralStatus;
   onStatusChange: (newStatus: ReferralStatus) => void;
+  providerId?: string;
 }
 
 const statusActions: { status: ReferralStatus; label: string; icon: React.ElementType; color: string }[] = [
@@ -16,7 +18,7 @@ const statusActions: { status: ReferralStatus; label: string; icon: React.Elemen
   { status: 'closed', label: 'Close', icon: FolderClosed, color: 'bg-slate-600 hover:bg-slate-700' },
 ];
 
-export function ReferralActions({ referralId, currentStatus, onStatusChange }: ReferralActionsProps) {
+export function ReferralActions({ referralId, currentStatus, onStatusChange, providerId }: ReferralActionsProps) {
   const [isUpdating, setIsUpdating] = useState<ReferralStatus | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -42,6 +44,25 @@ export function ReferralActions({ referralId, currentStatus, onStatusChange }: R
       onStatusChange(newStatus);
       setActionSuccess(`Status updated to ${newStatus.replace('_', ' ')}`);
       setTimeout(() => setActionSuccess(null), 3000);
+
+      // Notify the provider about the status change
+      if (providerId) {
+        const { data: providerData } = await supabase
+          .from('providers')
+          .select('user_id')
+          .eq('id', providerId)
+          .single();
+
+        if (providerData?.user_id) {
+          notifyUser(
+            providerData.user_id,
+            'status_change',
+            'Referral Status Updated',
+            `Your referral status has been updated to ${newStatus.replace('_', ' ')}`,
+            referralId
+          );
+        }
+      }
     } catch {
       setActionError('Failed to update status. Please try again.');
     } finally {

@@ -10,9 +10,12 @@ import {
   ChevronRight,
   Shield,
   Users,
-  MessageSquare
+  MessageSquare,
+  Bell,
+  DollarSign
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { NotificationBell } from '../common/NotificationBell';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -23,7 +26,9 @@ const navItems = [
   { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/admin/agencies', label: 'Agencies', icon: Building2 },
   { path: '/admin/referrals', label: 'Referrals', icon: FileText },
+  { path: '/admin/referral-costs', label: 'Referral Costs', icon: DollarSign },
   { path: '/admin/support-requests', label: 'Support Requests', icon: MessageSquare },
+  { path: '/admin/notifications', label: 'Notifications', icon: Bell },
   { path: '/admin/admin-management', label: 'Admin Users', icon: Users },
 ];
 
@@ -136,7 +141,10 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
       {/* Main Content */}
       <main className="lg:ml-64 pt-16 lg:pt-0">
         <div className="px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-2xl font-bold text-slate-800 mb-6">{title}</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
+            <NotificationBell basePath="/admin" />
+          </div>
           {children}
         </div>
       </main>

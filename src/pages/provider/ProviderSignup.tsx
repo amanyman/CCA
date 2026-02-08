@@ -2,19 +2,24 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Mail, Lock, AlertCircle, Building2, User, Phone, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { notifyAdmins } from '../../lib/notifications';
 
 interface FormData {
   email: string;
   password: string;
   confirmPassword: string;
   agencyName: string;
+  businessPhone: string;
   contactName: string;
-  phone: string;
+  contactPhone: string;
+  contactEmail: string;
 }
 
 interface FormErrors {
   [key: string]: string;
 }
+
+const phoneRegex = /^\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$/;
 
 export function ProviderSignup() {
   const [formData, setFormData] = useState<FormData>({
@@ -22,8 +27,10 @@ export function ProviderSignup() {
     password: '',
     confirmPassword: '',
     agencyName: '',
+    businessPhone: '',
     contactName: '',
-    phone: '',
+    contactPhone: '',
+    contactEmail: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -54,13 +61,23 @@ export function ProviderSignup() {
     if (!formData.agencyName.trim()) {
       newErrors.agencyName = 'Agency name is required';
     }
+    if (!formData.businessPhone.trim()) {
+      newErrors.businessPhone = 'Business phone is required';
+    } else if (!phoneRegex.test(formData.businessPhone.trim())) {
+      newErrors.businessPhone = 'Please enter a valid 10-digit phone number';
+    }
     if (!formData.contactName.trim()) {
       newErrors.contactName = 'Contact name is required';
     }
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$/.test(formData.phone.trim())) {
-      newErrors.phone = 'Please enter a valid 10-digit phone number';
+    if (!formData.contactPhone.trim()) {
+      newErrors.contactPhone = 'Contact phone is required';
+    } else if (!phoneRegex.test(formData.contactPhone.trim())) {
+      newErrors.contactPhone = 'Please enter a valid 10-digit phone number';
+    }
+    if (!formData.contactEmail.trim()) {
+      newErrors.contactEmail = 'Contact email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) {
+      newErrors.contactEmail = 'Please enter a valid email';
     }
 
     setErrors(newErrors);
@@ -120,10 +137,10 @@ export function ProviderSignup() {
         user_id: userId,
         agency_name: formData.agencyName.trim(),
         email: formData.email.trim().toLowerCase(),
-        phone: formData.phone.trim(),
+        phone: formData.businessPhone.trim(),
         main_contact_name: formData.contactName.trim(),
-        main_contact_phone: formData.phone.trim(),
-        main_contact_email: formData.email.trim().toLowerCase(),
+        main_contact_phone: formData.contactPhone.trim(),
+        main_contact_email: formData.contactEmail.trim().toLowerCase(),
         address: '',
       });
 
@@ -133,10 +150,17 @@ export function ProviderSignup() {
         return;
       }
 
+      // Notify admins about new agency signup
+      notifyAdmins(
+        'new_agency',
+        'New Agency Registered',
+        `${formData.agencyName.trim()} has signed up as a new partner`
+      );
+
       // Success!
       setIsLoading(false);
       setIsSuccess(true);
-    } catch (err) {
+    } catch {
       setErrors({ submit: 'An unexpected error occurred. Please try again.' });
       setIsLoading(false);
     }
@@ -176,7 +200,7 @@ export function ProviderSignup() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30 px-4 py-8">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-lg">
         <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
           <div className="text-center mb-8">
             <Link to="/" className="inline-block mb-6">
@@ -197,125 +221,181 @@ export function ProviderSignup() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Business Information */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Agency Name <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  value={formData.agencyName}
-                  onChange={(e) => handleChange('agencyName', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                    errors.agencyName ? 'border-red-300' : 'border-slate-300'
-                  }`}
-                  placeholder="Your agency name"
-                />
+              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">Business Information</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Agency Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="text"
+                      value={formData.agencyName}
+                      onChange={(e) => handleChange('agencyName', e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        errors.agencyName ? 'border-red-300' : 'border-slate-300'
+                      }`}
+                      placeholder="Your agency name"
+                    />
+                  </div>
+                  {errors.agencyName && <p className="mt-1 text-sm text-red-500">{errors.agencyName}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Business Phone <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="tel"
+                      value={formData.businessPhone}
+                      onChange={(e) => handleChange('businessPhone', e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        errors.businessPhone ? 'border-red-300' : 'border-slate-300'
+                      }`}
+                      placeholder="(555) 555-5555"
+                    />
+                  </div>
+                  {errors.businessPhone && <p className="mt-1 text-sm text-red-500">{errors.businessPhone}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Business Email (Login Email) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleChange('email', e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        errors.email ? 'border-red-300' : 'border-slate-300'
+                      }`}
+                      placeholder="office@agency.com"
+                    />
+                  </div>
+                  {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
+                </div>
               </div>
-              {errors.agencyName && <p className="mt-1 text-sm text-red-500">{errors.agencyName}</p>}
             </div>
 
+            {/* Main Point of Contact */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Contact Name <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  value={formData.contactName}
-                  onChange={(e) => handleChange('contactName', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                    errors.contactName ? 'border-red-300' : 'border-slate-300'
-                  }`}
-                  placeholder="Your name"
-                />
+              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">Main Point of Contact</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Contact Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="text"
+                      value={formData.contactName}
+                      onChange={(e) => handleChange('contactName', e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        errors.contactName ? 'border-red-300' : 'border-slate-300'
+                      }`}
+                      placeholder="Contact person's full name"
+                    />
+                  </div>
+                  {errors.contactName && <p className="mt-1 text-sm text-red-500">{errors.contactName}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Contact Phone <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="tel"
+                      value={formData.contactPhone}
+                      onChange={(e) => handleChange('contactPhone', e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        errors.contactPhone ? 'border-red-300' : 'border-slate-300'
+                      }`}
+                      placeholder="(555) 555-5555"
+                    />
+                  </div>
+                  {errors.contactPhone && <p className="mt-1 text-sm text-red-500">{errors.contactPhone}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Contact Email <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="email"
+                      value={formData.contactEmail}
+                      onChange={(e) => handleChange('contactEmail', e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        errors.contactEmail ? 'border-red-300' : 'border-slate-300'
+                      }`}
+                      placeholder="contact@agency.com"
+                    />
+                  </div>
+                  {errors.contactEmail && <p className="mt-1 text-sm text-red-500">{errors.contactEmail}</p>}
+                </div>
               </div>
-              {errors.contactName && <p className="mt-1 text-sm text-red-500">{errors.contactName}</p>}
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Phone Number <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleChange('phone', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                    errors.phone ? 'border-red-300' : 'border-slate-300'
-                  }`}
-                  placeholder="(555) 555-5555"
-                />
-              </div>
-              {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone}</p>}
-            </div>
+              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-3">Account Security</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => handleChange('password', e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        errors.password ? 'border-red-300' : 'border-slate-300'
+                      }`}
+                      placeholder="Min. 8 characters (A-Z, a-z, 0-9)"
+                    />
+                  </div>
+                  {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
+                </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Email Address <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                    errors.email ? 'border-red-300' : 'border-slate-300'
-                  }`}
-                  placeholder="you@agency.com"
-                />
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Confirm Password <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                        errors.confirmPassword ? 'border-red-300' : 'border-slate-300'
+                      }`}
+                      placeholder="Confirm your password"
+                    />
+                  </div>
+                  {errors.confirmPassword && <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>}
+                </div>
               </div>
-              {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => handleChange('password', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                    errors.password ? 'border-red-300' : 'border-slate-300'
-                  }`}
-                  placeholder="Min. 8 characters (A-Z, a-z, 0-9)"
-                />
-              </div>
-              {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Confirm Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
-                    errors.confirmPassword ? 'border-red-300' : 'border-slate-300'
-                  }`}
-                  placeholder="Confirm your password"
-                />
-              </div>
-              {errors.confirmPassword && <p className="mt-1 text-sm text-red-500">{errors.confirmPassword}</p>}
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-900 text-white py-3 rounded-lg hover:bg-blue-950 transition-colors font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+              className="w-full bg-blue-900 text-white py-3 rounded-lg hover:bg-blue-950 transition-colors font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>

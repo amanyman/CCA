@@ -4,6 +4,7 @@ import { Loader2, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ReferralFormData, AtFaultStatus } from '../../types/referral';
+import { notifyAdmins } from '../../lib/notifications';
 
 interface FormErrors {
   [key: string]: string;
@@ -77,6 +78,13 @@ export function ReferralForm() {
       });
 
       if (error) throw error;
+
+      // Send in-app notification to all admins
+      notifyAdmins(
+        'new_referral',
+        'New Referral Submitted',
+        `${providerData.agency_name} submitted a referral for ${formData.customer_name.trim()}`
+      );
 
       // Send admin notification email (fire-and-forget, don't block on failure)
       supabase.functions.invoke('send-referral-notification', {

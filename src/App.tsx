@@ -19,6 +19,9 @@ import { ReferralsPage } from './pages/admin/ReferralsPage';
 import { AdminReferralDetailPage } from './pages/admin/ReferralDetailPage';
 import { AdminManagementPage } from './pages/admin/AdminManagementPage';
 import { SupportRequestsPage } from './pages/admin/SupportRequestsPage';
+import { AdminNotificationsPage } from './pages/admin/NotificationsPage';
+import { ProviderNotificationsPage } from './pages/provider/NotificationsPage';
+import { AdminReferralCostsPage } from './pages/admin/ReferralCostsPage';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { ResetPassword } from './pages/auth/ResetPassword';
 
@@ -74,6 +77,14 @@ function App() {
             element={
               <ProtectedRoute allowedUserType="provider">
                 <ReferralDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/provider/notifications"
+            element={
+              <ProtectedRoute allowedUserType="provider">
+                <ProviderNotificationsPage />
               </ProtectedRoute>
             }
           />
@@ -135,6 +146,22 @@ function App() {
             element={
               <ProtectedRoute allowedUserType="admin">
                 <SupportRequestsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/notifications"
+            element={
+              <ProtectedRoute allowedUserType="admin">
+                <AdminNotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/referral-costs"
+            element={
+              <ProtectedRoute allowedUserType="admin">
+                <AdminReferralCostsPage />
               </ProtectedRoute>
             }
           />

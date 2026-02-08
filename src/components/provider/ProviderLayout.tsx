@@ -8,10 +8,12 @@ import {
   Menu,
   X,
   ChevronRight,
-  HelpCircle
+  HelpCircle,
+  Bell
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Tutorial } from './Tutorial';
+import { NotificationBell } from '../common/NotificationBell';
 
 interface ProviderLayoutProps {
   children: React.ReactNode;
@@ -21,6 +23,7 @@ interface ProviderLayoutProps {
 const navItems = [
   { path: '/provider/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/provider/referrals', label: 'Referrals', icon: FileText },
+  { path: '/provider/notifications', label: 'Notifications', icon: Bell },
   { path: '/provider/profile', label: 'Agency Profile', icon: Settings },
 ];
 
@@ -147,7 +150,10 @@ export function ProviderLayout({ children, title }: ProviderLayoutProps) {
       {/* Main Content */}
       <main className="lg:ml-64 pt-16 lg:pt-0">
         <div className="px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-2xl font-bold text-slate-800 mb-6">{title}</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
+            <NotificationBell basePath="/provider" />
+          </div>
           {children}
         </div>
       </main>
