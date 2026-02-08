@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { CheckCircle, XCircle, Clock, FolderClosed, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { CheckCircle, XCircle, Clock, FolderClosed, Loader2, ChevronDown, AlertCircle, Lock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { ReferralStatus } from '../../types/referral';
 import { notifyUser } from '../../lib/notifications';
@@ -12,22 +12,41 @@ interface ReferralActionsProps {
   providerId?: string;
 }
 
-const statusActions: { status: ReferralStatus; label: string; icon: React.ElementType; color: string }[] = [
-  { status: 'accepted', label: 'Accept', icon: CheckCircle, color: 'bg-green-600 hover:bg-green-700' },
-  { status: 'rejected', label: 'Reject', icon: XCircle, color: 'bg-red-600 hover:bg-red-700' },
-  { status: 'in_progress', label: 'In Progress', icon: Clock, color: 'bg-blue-600 hover:bg-blue-700' },
-  { status: 'closed', label: 'Close', icon: FolderClosed, color: 'bg-slate-600 hover:bg-slate-700' },
+const allStatuses: { status: ReferralStatus; label: string; icon: React.ElementType; dotColor: string }[] = [
+  { status: 'pending', label: 'Pending', icon: AlertCircle, dotColor: 'bg-yellow-500' },
+  { status: 'accepted', label: 'Accepted', icon: CheckCircle, dotColor: 'bg-green-500' },
+  { status: 'in_progress', label: 'In Progress', icon: Clock, dotColor: 'bg-blue-500' },
+  { status: 'rejected', label: 'Rejected', icon: XCircle, dotColor: 'bg-red-500' },
+  { status: 'closed', label: 'Closed', icon: FolderClosed, dotColor: 'bg-slate-500' },
 ];
 
 export function ReferralActions({ referralId, currentStatus, onStatusChange, providerId }: ReferralActionsProps) {
-  const [isUpdating, setIsUpdating] = useState<ReferralStatus | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const currentStatusInfo = allStatuses.find((s) => s.status === currentStatus) || allStatuses[0];
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleStatusChange = async (newStatus: ReferralStatus) => {
-    if (newStatus === currentStatus) return;
+    if (newStatus === currentStatus) {
+      setIsOpen(false);
+      return;
+    }
 
-    setIsUpdating(newStatus);
+    setIsUpdating(true);
+    setIsOpen(false);
     setActionError(null);
     setActionSuccess(null);
 
@@ -75,30 +94,21 @@ export function ReferralActions({ referralId, currentStatus, onStatusChange, pro
     } catch {
       setActionError('Failed to update status. Please try again.');
     } finally {
-      setIsUpdating(null);
+      setIsUpdating(false);
     }
   };
 
-  // Filter out current status and determine available actions
-  const getAvailableActions = () => {
-    if (currentStatus === 'pending') {
-      return statusActions.filter((a) => ['accepted', 'rejected'].includes(a.status));
-    }
-    if (currentStatus === 'accepted') {
-      return statusActions.filter((a) => ['in_progress', 'rejected'].includes(a.status));
-    }
-    if (currentStatus === 'in_progress') {
-      return statusActions.filter((a) => a.status === 'closed');
-    }
-    return [];
-  };
+  // Once status has been changed from pending, it's locked
+  const isLocked = currentStatus !== 'pending';
 
-  const availableActions = getAvailableActions();
-
-  if (availableActions.length === 0) {
+  if (isLocked) {
     return (
-      <div className="text-sm text-slate-500 italic">
-        No actions available for this status
+      <div className="space-y-3">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-600">
+          <span className={`w-2.5 h-2.5 rounded-full ${currentStatusInfo.dotColor}`} />
+          {currentStatusInfo.label}
+          <Lock className="w-3.5 h-3.5 text-slate-400" />
+        </div>
       </div>
     );
   }
@@ -111,27 +121,38 @@ export function ReferralActions({ referralId, currentStatus, onStatusChange, pro
       {actionSuccess && (
         <p className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">{actionSuccess}</p>
       )}
-      <div className="flex flex-wrap gap-2">
-      {availableActions.map((action) => {
-        const Icon = action.icon;
-        const isLoading = isUpdating === action.status;
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          disabled={isUpdating}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 transition-colors font-medium text-sm text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isUpdating ? (
+            <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
+          ) : (
+            <span className={`w-2.5 h-2.5 rounded-full ${currentStatusInfo.dotColor}`} />
+          )}
+          {currentStatusInfo.label}
+          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
 
-        return (
-          <button
-            key={action.status}
-            onClick={() => handleStatusChange(action.status)}
-            disabled={isUpdating !== null}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${action.color}`}
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Icon className="w-4 h-4" />
-            )}
-            {action.label}
-          </button>
-        );
-      })}
+        {isOpen && (
+          <div className="absolute z-10 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-1">
+            {allStatuses.filter((s) => s.status !== 'pending').map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.status}
+                  onClick={() => handleStatusChange(item.status)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  <Icon className="w-4 h-4 text-slate-400" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
