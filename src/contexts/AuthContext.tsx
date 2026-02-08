@@ -84,19 +84,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
 
-      if (newSession?.user) {
-        try {
-          const type = await determineUserType(newSession.user.id);
-          setUserType(type);
-        } catch (err) {
-          console.error('Error in onAuthStateChange:', err);
-          setUserType(null);
-        }
-      } else {
+      if (!newSession) {
         setUserType(null);
       }
     });
@@ -104,7 +96,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       subscription.unsubscribe();
     };
-  }, [determineUserType, refreshSession]);
+  }, [refreshSession]);
 
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
