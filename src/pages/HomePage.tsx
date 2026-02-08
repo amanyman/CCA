@@ -499,6 +499,12 @@ export function HomePage() {
             <p>
               &copy; {new Date().getFullYear()} California Care Alliance. {t('footer_rights')}
             </p>
+            <Link
+              to="/admin/login"
+              className="inline-block mt-4 text-slate-700 hover:text-slate-400 text-xs transition-colors"
+            >
+              Admin
+            </Link>
           </div>
         </div>
       </footer>
