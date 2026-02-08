@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Phone, Mail, Calendar, Users, AlertCircle, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Calendar, Users, AlertCircle, MessageSquare, Loader2, Send } from 'lucide-react';
 import { ProviderLayout } from '../../components/provider/ProviderLayout';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { ReferralWithNotes } from '../../types/referral';
+import { ReferralWithNotes, ReferralNote } from '../../types/referral';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 
@@ -14,6 +14,10 @@ export function ReferralDetailPage() {
   const [referral, setReferral] = useState<ReferralWithNotes | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [providerId, setProviderId] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState('');
 
   useEffect(() => {
     const fetchReferral = async () => {
@@ -32,6 +36,8 @@ export function ReferralDetailPage() {
         return;
       }
 
+      setProviderId(providerData.id);
+
       // Get referral with notes visible to provider
       const { data: referralData, error: referralError } = await supabase
         .from('referrals')
@@ -46,16 +52,17 @@ export function ReferralDetailPage() {
         return;
       }
 
-      // Get visible notes
+      // Get visible notes (admin visible notes + all provider messages on this referral)
       const { data: notesData } = await supabase
         .from('referral_notes')
         .select(`
           *,
-          admin:admins(name)
+          admin:admins(name),
+          provider:providers(agency_name)
         `)
         .eq('referral_id', id)
-        .eq('is_visible_to_provider', true)
-        .order('created_at', { ascending: false });
+        .or('is_visible_to_provider.eq.true,author_type.eq.provider')
+        .order('created_at', { ascending: true });
 
       setReferral({
         ...referralData,
@@ -66,6 +73,46 @@ export function ReferralDetailPage() {
 
     fetchReferral();
   }, [user, id]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || !user || !providerId || !id) return;
+
+    setIsSending(true);
+    setSendError('');
+
+    try {
+      const { data: noteData, error: insertError } = await supabase
+        .from('referral_notes')
+        .insert({
+          referral_id: id,
+          provider_id: providerId,
+          author_type: 'provider',
+          note: message.trim(),
+          is_visible_to_provider: true,
+        })
+        .select(`
+          *,
+          admin:admins(name),
+          provider:providers(agency_name)
+        `)
+        .single();
+
+      if (insertError) throw insertError;
+
+      setReferral((prev) =>
+        prev
+          ? { ...prev, notes: [...(prev.notes || []), noteData as ReferralNote] }
+          : prev
+      );
+      setMessage('');
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setSendError('Failed to send message. Please try again.');
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -219,25 +266,76 @@ export function ReferralDetailPage() {
             </div>
           </div>
 
-          {/* Notes from Admin */}
-          {referral.notes && referral.notes.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                Updates from California Care Alliance
-              </h3>
-              <div className="space-y-4">
-                {referral.notes.map((note) => (
-                  <div key={note.id} className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-                    <p className="text-slate-700 mb-2">{note.note}</p>
-                    <p className="text-sm text-slate-500">
-                      {note.admin?.name || 'Admin'} • {formatDateTime(note.created_at)}
-                    </p>
-                  </div>
-                ))}
-              </div>
+          {/* Messages */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Messages
+            </h3>
+
+            {/* Message Thread */}
+            <div className="space-y-4 mb-6">
+              {(!referral.notes || referral.notes.length === 0) ? (
+                <p className="text-slate-500 text-center py-4">No messages yet. Send a message to get started.</p>
+              ) : (
+                referral.notes.map((note) => {
+                  const isProvider = note.author_type === 'provider';
+                  return (
+                    <div
+                      key={note.id}
+                      className={`flex ${isProvider ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg p-4 ${
+                          isProvider
+                            ? 'bg-slate-100 border border-slate-200'
+                            : 'bg-blue-50 border border-blue-100'
+                        }`}
+                      >
+                        <p className="text-slate-700 mb-2">{note.note}</p>
+                        <p className="text-xs text-slate-500">
+                          {isProvider ? 'You' : note.admin?.name || 'CCA Team'} • {formatDateTime(note.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
-          )}
+
+            {/* Send Message Form */}
+            <form onSubmit={handleSendMessage} className="border-t border-slate-100 pt-4">
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value.slice(0, 5000))}
+                rows={3}
+                maxLength={5000}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                placeholder="Type your message..."
+              />
+              <div className="flex items-center justify-between mt-2">
+                <div className="text-xs text-slate-400">{message.length}/5000</div>
+                {sendError && <p className="text-sm text-red-600">{sendError}</p>}
+                <button
+                  type="submit"
+                  disabled={isSending || !message.trim()}
+                  className="inline-flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-950 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Send Message
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
         {/* Sidebar */}
@@ -268,15 +366,9 @@ export function ReferralDetailPage() {
           {/* Help Box */}
           <div className="bg-slate-50 rounded-xl border border-slate-200 p-6">
             <h3 className="font-semibold text-slate-800 mb-2">Need Help?</h3>
-            <p className="text-sm text-slate-600 mb-4">
-              If you have questions about this referral, please contact our team.
+            <p className="text-sm text-slate-600">
+              Use the Messages section to communicate directly with our team about this referral.
             </p>
-            <a
-              href="mailto:support@californiacarealliance.com"
-              className="text-blue-900 hover:text-blue-950 font-medium text-sm"
-            >
-              Contact Support →
-            </a>
           </div>
         </div>
       </div>

@@ -41,6 +41,7 @@ export function NoteForm({ referralId, onNoteAdded }: NoteFormProps) {
         .insert({
           referral_id: referralId,
           admin_id: adminData.id,
+          author_type: 'admin',
           note: note.trim(),
           is_visible_to_provider: isVisibleToProvider,
         })

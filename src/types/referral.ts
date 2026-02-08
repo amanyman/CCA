@@ -28,11 +28,16 @@ export interface ReferralNote {
   id: string;
   referral_id: string;
   admin_id: string;
+  provider_id: string | null;
+  author_type: 'admin' | 'provider';
   note: string;
   is_visible_to_provider: boolean;
   created_at: string;
   admin?: {
     name: string;
+  };
+  provider?: {
+    agency_name: string;
   };
 }
 

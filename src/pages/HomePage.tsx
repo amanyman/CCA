@@ -49,22 +49,22 @@ export function HomePage() {
               />
             </Link>
 
-            <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
-              <a href="#services" onClick={(e) => smoothScroll(e, '#services')} className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base whitespace-nowrap border border-slate-200 px-3 py-1.5 rounded-md hover:bg-slate-50">{t('nav_how_we_help')}</a>
-              <a href="#why-choose-us" onClick={(e) => smoothScroll(e, '#why-choose-us')} className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base whitespace-nowrap border border-slate-200 px-3 py-1.5 rounded-md hover:bg-slate-50">{t('nav_why_us')}</a>
-              <a href="#broker-partner" onClick={(e) => smoothScroll(e, '#broker-partner')} className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base whitespace-nowrap border border-slate-200 px-3 py-1.5 rounded-md hover:bg-slate-50">Insurance Partners</a>
-              <Link to="/provider/login" className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base whitespace-nowrap border border-slate-200 px-3 py-1.5 rounded-md hover:bg-slate-50">Partner Portal</Link>
+            <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
+              <a href="#services" onClick={(e) => smoothScroll(e, '#services')} className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base">{t('nav_how_we_help')}</a>
+              <a href="#why-choose-us" onClick={(e) => smoothScroll(e, '#why-choose-us')} className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base">{t('nav_why_us')}</a>
+              <a href="#broker-partner" onClick={(e) => smoothScroll(e, '#broker-partner')} className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base">Insurance Partners</a>
+              <Link to="/provider/login" className="text-slate-600 hover:text-blue-900 transition-colors font-medium text-sm lg:text-base">Partner Portal</Link>
 
-              <div className="flex items-center gap-2 border-l border-slate-200 pl-4 lg:pl-6">
+              <div className="flex items-center gap-1 border-l border-slate-200 pl-6">
                 <button
                   onClick={() => setLanguage('en')}
-                  className={`px-2 lg:px-3 py-1.5 rounded-md text-sm font-medium transition-all ${language === 'en' ? 'bg-blue-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                  className={`px-2.5 py-1 rounded-md text-sm font-medium transition-all ${language === 'en' ? 'bg-blue-900 text-white' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                   {t('language_english')}
                 </button>
                 <button
                   onClick={() => setLanguage('es')}
-                  className={`px-2 lg:px-3 py-1.5 rounded-md text-sm font-medium transition-all ${language === 'es' ? 'bg-blue-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                  className={`px-2.5 py-1 rounded-md text-sm font-medium transition-all ${language === 'es' ? 'bg-blue-900 text-white' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                   {t('language_spanish')}
                 </button>
@@ -72,7 +72,7 @@ export function HomePage() {
 
               <button
                 onClick={() => setSupportModalOpen(true)}
-                className="bg-blue-900 text-white px-4 lg:px-6 py-2.5 rounded-lg hover:bg-blue-950 transition-all duration-300 font-semibold text-sm lg:text-base whitespace-nowrap"
+                className="bg-blue-900 text-white px-5 py-2.5 rounded-lg hover:bg-blue-950 transition-all duration-300 font-semibold text-sm lg:text-base"
               >
                 {t('nav_get_help')}
               </button>

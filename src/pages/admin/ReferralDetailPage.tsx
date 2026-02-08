@@ -57,7 +57,8 @@ export function AdminReferralDetailPage() {
         .from('referral_notes')
         .select(`
           *,
-          admin:admins(name)
+          admin:admins(name),
+          provider:providers(agency_name)
         `)
         .eq('referral_id', id)
         .order('created_at', { ascending: false });
@@ -281,33 +282,47 @@ export function AdminReferralDetailPage() {
               {referral.notes?.length === 0 ? (
                 <p className="text-slate-500 text-center py-4">No notes yet</p>
               ) : (
-                referral.notes?.map((note) => (
-                  <div
-                    key={note.id}
-                    className={`rounded-lg p-4 ${
-                      note.is_visible_to_provider
-                        ? 'bg-blue-50 border border-blue-100'
-                        : 'bg-slate-50 border border-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        {note.is_visible_to_provider ? (
-                          <Eye className="w-4 h-4 text-blue-600" />
-                        ) : (
-                          <EyeOff className="w-4 h-4 text-slate-400" />
-                        )}
-                        <span className="text-xs text-slate-500">
-                          {note.is_visible_to_provider ? 'Visible to provider' : 'Internal only'}
-                        </span>
+                referral.notes?.map((note) => {
+                  const isPartner = note.author_type === 'provider';
+                  return (
+                    <div
+                      key={note.id}
+                      className={`rounded-lg p-4 ${
+                        isPartner
+                          ? 'bg-amber-50 border border-amber-200'
+                          : note.is_visible_to_provider
+                            ? 'bg-blue-50 border border-blue-100'
+                            : 'bg-slate-50 border border-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {isPartner ? (
+                            <Building2 className="w-4 h-4 text-amber-600" />
+                          ) : note.is_visible_to_provider ? (
+                            <Eye className="w-4 h-4 text-blue-600" />
+                          ) : (
+                            <EyeOff className="w-4 h-4 text-slate-400" />
+                          )}
+                          <span className="text-xs text-slate-500">
+                            {isPartner
+                              ? 'Partner message'
+                              : note.is_visible_to_provider
+                                ? 'Visible to provider'
+                                : 'Internal only'}
+                          </span>
+                        </div>
                       </div>
+                      <p className="text-slate-700 mb-2">{note.note}</p>
+                      <p className="text-sm text-slate-500">
+                        {isPartner
+                          ? note.provider?.agency_name || 'Partner'
+                          : note.admin?.name || 'Admin'}{' '}
+                        • {formatDateTime(note.created_at)}
+                      </p>
                     </div>
-                    <p className="text-slate-700 mb-2">{note.note}</p>
-                    <p className="text-sm text-slate-500">
-                      {note.admin?.name || 'Admin'} • {formatDateTime(note.created_at)}
-                    </p>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -404,12 +419,17 @@ export function AdminReferralDetailPage() {
 
                 // Notes
                 referral.notes?.forEach(note => {
+                  const isPartner = note.author_type === 'provider';
                   entries.push({
                     type: 'note',
                     date: note.created_at,
-                    label: `Note by ${note.admin?.name || 'Admin'}`,
+                    label: isPartner
+                      ? `Message from ${note.provider?.agency_name || 'Partner'}`
+                      : `Note by ${note.admin?.name || 'Admin'}`,
                     detail: note.note.length > 80 ? note.note.slice(0, 80) + '...' : note.note,
-                    icon: <MessageSquare className="w-4 h-4 text-slate-500" />,
+                    icon: isPartner
+                      ? <Building2 className="w-4 h-4 text-amber-500" />
+                      : <MessageSquare className="w-4 h-4 text-slate-500" />,
                   });
                 });
 
