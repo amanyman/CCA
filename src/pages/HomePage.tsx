@@ -140,13 +140,6 @@ export function HomePage() {
                 {t('hero_request_help')}
                 <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
-              <a
-                href="#services"
-                onClick={(e) => smoothScroll(e, '#services')}
-                className="bg-white text-slate-700 px-8 py-4 rounded-xl hover:bg-slate-50 transition-all duration-300 font-semibold text-center border border-slate-200 hover:border-slate-300"
-              >
-                {t('hero_learn_more')}
-              </a>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
