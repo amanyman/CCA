@@ -27,10 +27,13 @@ export function ProtectedRoute({ children, allowedUserType, redirectTo }: Protec
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
-  // User exists but userType is null - redirect to login since role can't be determined
+  // User exists but userType is still being determined - show loading
   if (!userType) {
-    const loginPath = allowedUserType === 'admin' ? '/admin/login' : '/provider/login';
-    return <Navigate to={loginPath} state={{ from: location }} replace />;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="lg" message="Loading..." />
+      </div>
+    );
   }
 
   // Wrong user type - redirect to correct dashboard

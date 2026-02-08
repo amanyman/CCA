@@ -49,7 +49,7 @@ export function ProviderLogin() {
   return (
     <LoginForm
       onSubmit={handleLogin}
-      title="Provider Portal"
+      title="Partner Portal"
       subtitle="Sign in to manage your referrals"
       signupLink="/provider/signup"
       signupText="Don't have an account?"

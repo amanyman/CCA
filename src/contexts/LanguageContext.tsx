@@ -193,10 +193,10 @@ const translations = {
 
     support_consent: "I consent to be contacted by California Care Alliance regarding support services",
 
-    // Provider Portal
-    provider_portal: "Provider Portal",
-    provider_login: "Provider Login",
-    provider_signup: "Provider Signup",
+    // Partner Portal
+    provider_portal: "Partner Portal",
+    provider_login: "Partner Login",
+    provider_signup: "Partner Signup",
     provider_dashboard: "Dashboard",
     provider_profile: "Agency Profile",
     provider_referrals: "Referrals",
@@ -419,10 +419,10 @@ const translations = {
 
     support_consent: "Consiento en ser contactado por California Care Alliance sobre servicios de apoyo",
 
-    // Provider Portal
-    provider_portal: "Portal de Proveedores",
-    provider_login: "Iniciar Sesión de Proveedor",
-    provider_signup: "Registro de Proveedor",
+    // Partner Portal
+    provider_portal: "Portal de Socios",
+    provider_login: "Iniciar Sesión de Socio",
+    provider_signup: "Registro de Socio",
     provider_dashboard: "Panel de Control",
     provider_profile: "Perfil de Agencia",
     provider_referrals: "Referencias",

@@ -186,7 +186,7 @@ export function ProviderSignup() {
                 className="h-12 w-auto mx-auto"
               />
             </Link>
-            <h1 className="text-2xl font-bold text-slate-800">Create Provider Account</h1>
+            <h1 className="text-2xl font-bold text-slate-800">Create Partner Account</h1>
             <p className="text-slate-600 mt-2">Join our network of insurance partners</p>
           </div>
 

@@ -123,7 +123,7 @@ export function ForgotPassword() {
 
           <div className="mt-6 text-center space-y-3">
             <Link to="/provider/login" className="block text-sm text-blue-900 hover:text-blue-950 font-medium">
-              Back to Provider Login
+              Back to Partner Login
             </Link>
             <Link to="/admin/login" className="block text-sm text-slate-500 hover:text-slate-700">
               Admin Login

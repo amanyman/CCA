@@ -89,7 +89,7 @@ export function NoteForm({ referralId, onNoteAdded }: NoteFormProps) {
           className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
         />
         <span className={`text-sm ${isVisibleToProvider ? 'text-blue-700 font-medium' : 'text-slate-700'}`}>
-          {isVisibleToProvider ? 'Visible to provider' : 'Internal only (not visible to provider)'}
+          {isVisibleToProvider ? 'Visible to partner' : 'Internal only (not visible to partner)'}
         </span>
       </label>
 
