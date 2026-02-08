@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, FileText, Clock, ArrowRight } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
@@ -6,6 +6,11 @@ import { supabase } from '../../lib/supabase';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { ReferralStatus } from '../../types/referral';
+import { ReferralTrendChart } from '../../components/admin/charts/ReferralTrendChart';
+import { StatusDistributionChart } from '../../components/admin/charts/StatusDistributionChart';
+import { TopAgenciesChart } from '../../components/admin/charts/TopAgenciesChart';
+import { PayoutSummaryCard } from '../../components/admin/charts/PayoutSummaryCard';
+import { groupReferralsByPeriod, groupByStatus, getTopAgencies } from '../../utils/analytics';
 
 interface DashboardStats {
   totalAgencies: number;
@@ -24,6 +29,8 @@ interface RecentReferral {
   provider: { agency_name: string } | null;
 }
 
+type TimeRange = 'week' | 'month' | 'all';
+
 export function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalAgencies: 0,
@@ -33,9 +40,16 @@ export function AdminDashboard() {
     inProgressReferrals: 0,
     closedReferrals: 0,
   });
+  const [allReferrals, setAllReferrals] = useState<RecentReferral[]>([]);
   const [recentReferrals, setRecentReferrals] = useState<RecentReferral[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>('month');
+
+  // Payout data
+  const [totalCosts, setTotalCosts] = useState(0);
+  const [totalPaid, setTotalPaid] = useState(0);
+  const [totalPending, setTotalPending] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -84,7 +98,26 @@ export function AdminDashboard() {
             inProgressReferrals: referrals.filter((r: any) => r.status === 'in_progress').length,
             closedReferrals: referrals.filter((r: any) => r.status === 'closed').length,
           });
+          setAllReferrals(transformed);
           setRecentReferrals(transformed.slice(0, 10));
+        }
+
+        // Fetch referral costs for payout summary
+        const { data: costsData } = await supabase
+          .from('referral_costs')
+          .select('amount, payout_status');
+
+        if (costsData) {
+          const total = costsData.reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+          const paid = costsData
+            .filter((c: any) => c.payout_status === 'paid')
+            .reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+          const pending = costsData
+            .filter((c: any) => c.payout_status === 'pending')
+            .reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+          setTotalCosts(total);
+          setTotalPaid(paid);
+          setTotalPending(pending);
         }
       } catch {
         setError('An unexpected error occurred. Please try refreshing.');
@@ -95,6 +128,29 @@ export function AdminDashboard() {
 
     fetchData();
   }, []);
+
+  // Filter referrals by time range for charts
+  const filteredReferrals = useMemo(() => {
+    if (timeRange === 'all') return allReferrals;
+
+    const now = new Date();
+    const cutoff = new Date();
+    if (timeRange === 'week') {
+      cutoff.setDate(now.getDate() - 7);
+    } else {
+      cutoff.setMonth(now.getMonth() - 1);
+    }
+
+    return allReferrals.filter((r) => new Date(r.created_at) >= cutoff);
+  }, [allReferrals, timeRange]);
+
+  const trendData = useMemo(
+    () => groupReferralsByPeriod(filteredReferrals, timeRange === 'week' ? 'week' : 'month'),
+    [filteredReferrals, timeRange]
+  );
+
+  const statusData = useMemo(() => groupByStatus(filteredReferrals), [filteredReferrals]);
+  const topAgencies = useMemo(() => getTopAgencies(filteredReferrals), [filteredReferrals]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -150,6 +206,12 @@ export function AdminDashboard() {
     },
   ];
 
+  const timeRangeOptions: { value: TimeRange; label: string }[] = [
+    { value: 'week', label: 'This Week' },
+    { value: 'month', label: 'This Month' },
+    { value: 'all', label: 'All Time' },
+  ];
+
   return (
     <AdminLayout title="Dashboard">
       {/* Error Banner */}
@@ -183,6 +245,38 @@ export function AdminDashboard() {
             </Link>
           );
         })}
+      </div>
+
+      {/* Time Range Toggle */}
+      <div className="flex items-center gap-2 mb-6">
+        {timeRangeOptions.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setTimeRange(opt.value)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              timeRange === opt.value
+                ? 'bg-blue-900 text-white'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <ReferralTrendChart
+          data={trendData}
+          timeRange={timeRangeOptions.find((o) => o.value === timeRange)?.label}
+        />
+        <StatusDistributionChart data={statusData} />
+        <TopAgenciesChart data={topAgencies} />
+        <PayoutSummaryCard
+          totalCosts={totalCosts}
+          totalPaid={totalPaid}
+          totalPending={totalPending}
+        />
       </div>
 
       {/* Recent Referrals */}

@@ -12,8 +12,6 @@ import {
   EyeOff,
   Clock,
   CheckCircle,
-  XCircle,
-  FolderClosed,
   FileText,
   Send,
   Loader2,
@@ -30,6 +28,8 @@ import { NoteForm } from '../../components/admin/NoteForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { notifyUser } from '../../lib/notifications';
 import { ReferralCost, PayoutStatus } from '../../types/referralCost';
+import { logActivity } from '../../lib/activityLog';
+import { ActivityLog } from '../../types/activityLog';
 
 export function AdminReferralDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +40,9 @@ export function AdminReferralDetailPage() {
   const [messageText, setMessageText] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [messageError, setMessageError] = useState('');
+
+  // Activity log state
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
 
   // Referral cost state
   const [referralCost, setReferralCost] = useState<ReferralCost | null>(null);
@@ -98,6 +101,18 @@ export function AdminReferralDetailPage() {
           setCostAmount(costData.amount?.toString() || '');
           setCostPaidTo(costData.paid_to || '');
           setCostPaidDate(costData.paid_date || '');
+        }
+
+        // Fetch activity logs for this referral
+        const { data: logsData } = await supabase
+          .from('activity_logs')
+          .select('*')
+          .eq('entity_id', id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (logsData) {
+          setActivityLogs(logsData as ActivityLog[]);
         }
       } catch {
         setError('An unexpected error occurred.');
@@ -176,6 +191,15 @@ export function AdminReferralDetailPage() {
         );
       }
 
+      logActivity({
+        actorName: adminData.name,
+        actorType: 'admin',
+        action: 'message_sent',
+        entityType: 'referral',
+        entityId: id,
+        metadata: { detail: `Message sent to ${referral?.provider?.agency_name || 'partner'}` },
+      });
+
       setMessageText('');
     } catch (err) {
       console.error('Error sending message:', err);
@@ -224,6 +248,14 @@ export function AdminReferralDetailPage() {
         if (insertError) throw insertError;
         setReferralCost(data as ReferralCost);
       }
+
+      logActivity({
+        actorType: 'admin',
+        action: 'cost_saved',
+        entityType: 'referral',
+        entityId: id,
+        metadata: { detail: `Referral cost set to $${amount.toFixed(2)}`, amount },
+      });
     } catch {
       setCostError('Failed to save referral cost.');
     } finally {
@@ -260,6 +292,14 @@ export function AdminReferralDetailPage() {
       setReferralCost(data as ReferralCost);
       setCostPaidTo(data.paid_to || '');
       setCostPaidDate(data.paid_date || '');
+
+      logActivity({
+        actorType: 'admin',
+        action: 'payout_status_changed',
+        entityType: 'referral',
+        entityId: id,
+        metadata: { detail: `Payout status changed to ${status}`, status },
+      });
     } catch {
       setCostError('Failed to update payout status.');
     } finally {
@@ -724,28 +764,53 @@ export function AdminReferralDetailPage() {
             </h3>
             <div className="space-y-0">
               {(() => {
-                const statusIcon = (status: string) => {
-                  switch (status) {
-                    case 'accepted': return <CheckCircle className="w-4 h-4 text-green-600" />;
-                    case 'rejected': return <XCircle className="w-4 h-4 text-red-600" />;
-                    case 'in_progress': return <Clock className="w-4 h-4 text-blue-600" />;
-                    case 'closed': return <FolderClosed className="w-4 h-4 text-slate-600" />;
-                    default: return <FileText className="w-4 h-4 text-yellow-600" />;
+                const actionIcon = (action: string) => {
+                  switch (action) {
+                    case 'status_change': return <CheckCircle className="w-4 h-4 text-blue-600" />;
+                    case 'message_sent': return <MessageSquare className="w-4 h-4 text-purple-600" />;
+                    case 'note_added': return <StickyNote className="w-4 h-4 text-amber-500" />;
+                    case 'cost_saved': return <DollarSign className="w-4 h-4 text-green-600" />;
+                    case 'payout_status_changed': return <CheckCircle className="w-4 h-4 text-emerald-600" />;
+                    default: return <FileText className="w-4 h-4 text-slate-500" />;
                   }
                 };
 
-                const statusLabel = (status: string) => {
-                  switch (status) {
-                    case 'accepted': return 'Accepted';
-                    case 'rejected': return 'Rejected';
-                    case 'in_progress': return 'In Progress';
-                    case 'closed': return 'Closed';
-                    default: return 'Pending';
+                const actionLabel = (action: string) => {
+                  switch (action) {
+                    case 'status_change': return 'Status Change';
+                    case 'message_sent': return 'Message Sent';
+                    case 'note_added': return 'Note Added';
+                    case 'cost_saved': return 'Cost Updated';
+                    case 'payout_status_changed': return 'Payout Updated';
+                    case 'referral_created': return 'Referral Created';
+                    default: return action;
                   }
                 };
 
+                // If we have real activity logs, display them
+                if (activityLogs.length > 0) {
+                  return activityLogs.map((log, i) => (
+                    <div key={log.id} className="flex gap-3 pb-4 last:pb-0 relative">
+                      {i < activityLogs.length - 1 && (
+                        <div className="absolute left-[7px] top-6 bottom-0 w-px bg-slate-200" />
+                      )}
+                      <div className="flex-shrink-0 mt-0.5">{actionIcon(log.action)}</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-slate-800">{actionLabel(log.action)}</div>
+                        {log.actor_name && (
+                          <div className="text-xs text-slate-500">by {log.actor_name}</div>
+                        )}
+                        {(log.metadata as Record<string, string>)?.detail && (
+                          <div className="text-xs text-slate-500 truncate">{(log.metadata as Record<string, string>).detail}</div>
+                        )}
+                        <div className="text-xs text-slate-400 mt-0.5">{formatDateTime(log.created_at)}</div>
+                      </div>
+                    </div>
+                  ));
+                }
+
+                // Fallback: build timeline from referral data
                 type TimelineEntry = {
-                  type: 'created' | 'status' | 'note';
                   date: string;
                   label: string;
                   detail?: string;
@@ -754,42 +819,21 @@ export function AdminReferralDetailPage() {
 
                 const entries: TimelineEntry[] = [];
 
-                // Referral created
                 entries.push({
-                  type: 'created',
                   date: referral.created_at,
                   label: 'Referral Submitted',
                   detail: `by ${referral.provider?.agency_name || 'Unknown Agency'}`,
                   icon: <FileText className="w-4 h-4 text-blue-600" />,
                 });
 
-                // Status change (if not pending)
                 if (referral.status !== 'pending' && referral.updated_at !== referral.created_at) {
                   entries.push({
-                    type: 'status',
                     date: referral.updated_at,
-                    label: `Status: ${statusLabel(referral.status)}`,
-                    icon: statusIcon(referral.status),
+                    label: `Status: ${referral.status.replace('_', ' ')}`,
+                    icon: <CheckCircle className="w-4 h-4 text-green-600" />,
                   });
                 }
 
-                // Notes
-                referral.notes?.forEach(note => {
-                  const isPartner = note.author_type === 'provider';
-                  entries.push({
-                    type: 'note',
-                    date: note.created_at,
-                    label: isPartner
-                      ? `Message from ${note.provider?.agency_name || 'Partner'}`
-                      : `Note by ${note.admin?.name || 'Admin'}`,
-                    detail: note.note.length > 80 ? note.note.slice(0, 80) + '...' : note.note,
-                    icon: isPartner
-                      ? <Building2 className="w-4 h-4 text-amber-500" />
-                      : <MessageSquare className="w-4 h-4 text-slate-500" />,
-                  });
-                });
-
-                // Sort newest first
                 entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
                 return entries.map((entry, i) => (

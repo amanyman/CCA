@@ -3,6 +3,7 @@ import { CheckCircle, XCircle, Clock, FolderClosed, Loader2 } from 'lucide-react
 import { supabase } from '../../lib/supabase';
 import { ReferralStatus } from '../../types/referral';
 import { notifyUser } from '../../lib/notifications';
+import { logActivity } from '../../lib/activityLog';
 
 interface ReferralActionsProps {
   referralId: string;
@@ -44,6 +45,14 @@ export function ReferralActions({ referralId, currentStatus, onStatusChange, pro
       onStatusChange(newStatus);
       setActionSuccess(`Status updated to ${newStatus.replace('_', ' ')}`);
       setTimeout(() => setActionSuccess(null), 3000);
+
+      logActivity({
+        actorType: 'admin',
+        action: 'status_change',
+        entityType: 'referral',
+        entityId: referralId,
+        metadata: { detail: `Status changed to ${newStatus.replace('_', ' ')}`, newStatus },
+      });
 
       // Notify the provider about the status change
       if (providerId) {

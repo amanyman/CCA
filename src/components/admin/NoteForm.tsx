@@ -3,6 +3,7 @@ import { Loader2, MessageSquarePlus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ReferralNote } from '../../types/referral';
+import { logActivity } from '../../lib/activityLog';
 
 interface NoteFormProps {
   referralId: string;
@@ -52,6 +53,15 @@ export function NoteForm({ referralId, onNoteAdded }: NoteFormProps) {
       onNoteAdded({
         ...noteData,
         admin: { name: adminData.name },
+      });
+
+      logActivity({
+        actorName: adminData.name,
+        actorType: 'admin',
+        action: 'note_added',
+        entityType: 'referral',
+        entityId: referralId,
+        metadata: { detail: `Note added by ${adminData.name}` },
       });
 
       setNote('');

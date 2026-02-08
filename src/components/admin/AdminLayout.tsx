@@ -11,7 +11,8 @@ import {
   Shield,
   Users,
   Bell,
-  DollarSign
+  DollarSign,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationBell } from '../common/NotificationBell';
@@ -27,6 +28,7 @@ const navItems = [
   { path: '/admin/referrals', label: 'Referrals', icon: FileText },
   { path: '/admin/referral-costs', label: 'Referral Costs', icon: DollarSign },
   { path: '/admin/notifications', label: 'Notifications', icon: Bell },
+  { path: '/admin/activity', label: 'Activity Log', icon: Activity },
   { path: '/admin/admin-management', label: 'Admin Users', icon: Users },
 ];
 

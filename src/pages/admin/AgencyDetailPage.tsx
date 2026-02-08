@@ -1,20 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Building2, Phone, Mail, MapPin, User, FileText } from 'lucide-react';
+import { ArrowLeft, Building2, Phone, Mail, MapPin, User, FileText, TrendingUp, DollarSign, Clock } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { supabase } from '../../lib/supabase';
 import { Provider } from '../../types/provider';
 import { Referral } from '../../types/referral';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { SparklineChart } from '../../components/admin/charts/SparklineChart';
 
 export function AgencyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [agency, setAgency] = useState<Provider | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const [error, setError] = useState<string | null>(null);
+
+  // Cost data
+  const [totalEarned, setTotalEarned] = useState(0);
+  const [totalPending, setTotalPending] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,6 +54,26 @@ export function AgencyDetailPage() {
         } else {
           setReferrals(referralData || []);
         }
+
+        // Fetch referral costs for this agency's referrals
+        if (referralData && referralData.length > 0) {
+          const referralIds = referralData.map((r: Referral) => r.id);
+          const { data: costsData } = await supabase
+            .from('referral_costs')
+            .select('amount, payout_status')
+            .in('referral_id', referralIds);
+
+          if (costsData) {
+            const paid = costsData
+              .filter((c: any) => c.payout_status === 'paid')
+              .reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+            const pending = costsData
+              .filter((c: any) => c.payout_status === 'pending')
+              .reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+            setTotalEarned(paid);
+            setTotalPending(pending);
+          }
+        }
       } catch {
         setError('An unexpected error occurred.');
       }
@@ -67,6 +91,27 @@ export function AgencyDetailPage() {
       day: 'numeric',
     });
   };
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+
+  // Sparkline: referrals over last 12 weeks
+  const sparklineData = useMemo(() => {
+    const now = new Date();
+    const weeks: { value: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - i * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+      const count = referrals.filter((r) => {
+        const d = new Date(r.created_at);
+        return d >= weekStart && d < weekEnd;
+      }).length;
+      weeks.push({ value: count });
+    }
+    return weeks;
+  }, [referrals]);
 
   if (isLoading) {
     return (
@@ -100,7 +145,16 @@ export function AgencyDetailPage() {
     pending: referrals.filter((r) => r.status === 'pending').length,
     accepted: referrals.filter((r) => r.status === 'accepted').length,
     inProgress: referrals.filter((r) => r.status === 'in_progress').length,
+    closed: referrals.filter((r) => r.status === 'closed').length,
   };
+
+  const conversionRate = stats.total > 0
+    ? Math.round(((stats.closed + stats.inProgress) / stats.total) * 100)
+    : 0;
+
+  const avgReferralValue = stats.total > 0
+    ? (totalEarned + totalPending) / stats.total
+    : 0;
 
   return (
     <AdminLayout title="Agency Details">
@@ -249,29 +303,81 @@ export function AgencyDetailPage() {
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar - Performance Metrics */}
         <div className="space-y-6">
-          {/* Stats */}
+          {/* Performance Card */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
-            <h3 className="font-semibold text-slate-800 mb-4">Referral Stats</h3>
-            <div className="space-y-3">
+            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              Performance
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-baseline mb-1">
+                  <span className="text-sm text-slate-600">Conversion Rate</span>
+                  <span className="text-lg font-bold text-slate-800">{conversionRate}%</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2">
+                  <div
+                    className="bg-blue-500 h-2 rounded-full transition-all"
+                    style={{ width: `${conversionRate}%` }}
+                  />
+                </div>
+              </div>
+
               <div className="flex justify-between">
-                <span className="text-slate-600">Total Referrals</span>
+                <span className="text-sm text-slate-600">Total Referrals</span>
                 <span className="font-semibold text-slate-800">{stats.total}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Pending</span>
+                <span className="text-sm text-slate-600">Pending</span>
                 <span className="font-semibold text-yellow-600">{stats.pending}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">Accepted</span>
+                <span className="text-sm text-slate-600">Accepted</span>
                 <span className="font-semibold text-green-600">{stats.accepted}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">In Progress</span>
+                <span className="text-sm text-slate-600">In Progress</span>
                 <span className="font-semibold text-blue-600">{stats.inProgress}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Closed</span>
+                <span className="font-semibold text-slate-600">{stats.closed}</span>
+              </div>
             </div>
+          </div>
+
+          {/* Payout Metrics */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              Payouts
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Total Earned</span>
+                <span className="font-semibold text-green-700">{formatCurrency(totalEarned)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Pending Payouts</span>
+                <span className="font-semibold text-yellow-700">{formatCurrency(totalPending)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-600">Avg Referral Value</span>
+                <span className="font-semibold text-slate-800">{formatCurrency(avgReferralValue)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sparkline */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <h3 className="font-semibold text-slate-800 mb-2 flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Last 12 Weeks
+            </h3>
+            <p className="text-xs text-slate-500 mb-3">Referrals per week</p>
+            <SparklineChart data={sparklineData} color="#3B82F6" height={50} />
           </div>
         </div>
       </div>

@@ -21,6 +21,7 @@ import { AdminManagementPage } from './pages/admin/AdminManagementPage';
 import { AdminNotificationsPage } from './pages/admin/NotificationsPage';
 import { ProviderNotificationsPage } from './pages/provider/NotificationsPage';
 import { AdminReferralCostsPage } from './pages/admin/ReferralCostsPage';
+import { ActivityLogPage } from './pages/admin/ActivityLogPage';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { ResetPassword } from './pages/auth/ResetPassword';
 
@@ -153,6 +154,14 @@ function App() {
             element={
               <ProtectedRoute allowedUserType="admin">
                 <AdminReferralCostsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/activity"
+            element={
+              <ProtectedRoute allowedUserType="admin">
+                <ActivityLogPage />
               </ProtectedRoute>
             }
           />
