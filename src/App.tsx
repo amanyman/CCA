@@ -18,7 +18,6 @@ import { AgencyDetailPage } from './pages/admin/AgencyDetailPage';
 import { ReferralsPage } from './pages/admin/ReferralsPage';
 import { AdminReferralDetailPage } from './pages/admin/ReferralDetailPage';
 import { AdminManagementPage } from './pages/admin/AdminManagementPage';
-import { SupportRequestsPage } from './pages/admin/SupportRequestsPage';
 import { AdminNotificationsPage } from './pages/admin/NotificationsPage';
 import { ProviderNotificationsPage } from './pages/provider/NotificationsPage';
 import { AdminReferralCostsPage } from './pages/admin/ReferralCostsPage';
@@ -138,14 +137,6 @@ function App() {
             element={
               <ProtectedRoute allowedUserType="admin">
                 <AdminManagementPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/support-requests"
-            element={
-              <ProtectedRoute allowedUserType="admin">
-                <SupportRequestsPage />
               </ProtectedRoute>
             }
           />

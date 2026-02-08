@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Shield,
   Users,
-  MessageSquare,
   Bell,
   DollarSign
 } from 'lucide-react';
@@ -27,7 +26,6 @@ const navItems = [
   { path: '/admin/agencies', label: 'Agencies', icon: Building2 },
   { path: '/admin/referrals', label: 'Referrals', icon: FileText },
   { path: '/admin/referral-costs', label: 'Referral Costs', icon: DollarSign },
-  { path: '/admin/support-requests', label: 'Support Requests', icon: MessageSquare },
   { path: '/admin/notifications', label: 'Notifications', icon: Bell },
   { path: '/admin/admin-management', label: 'Admin Users', icon: Users },
 ];
