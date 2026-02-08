@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Building2, AlertCircle, Download, Phone, Mail, MapPin, FileText, CheckCircle, Clock, XCircle } from 'lucide-react';
+
 import { supabase } from '../../lib/supabase';
 import { Provider } from '../../types/provider';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -19,19 +20,11 @@ interface AgencyWithStats extends Provider {
   rejectedCount: number;
 }
 
-function extractZip(address: string | null): string | null {
-  if (!address) return null;
-  const match = address.match(/\b(\d{5})(?:-\d{4})?\b/);
-  return match ? match[1] : null;
-}
-
 export function AgencyList() {
   const [agencies, setAgencies] = useState<AgencyWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [zipMin, setZipMin] = useState('');
-  const [zipMax, setZipMax] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const debouncedSearch = useDebounce(searchTerm, 300);
 
@@ -99,7 +92,7 @@ export function AgencyList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, zipMin, zipMax]);
+  }, [debouncedSearch]);
 
   const filteredAgencies = agencies.filter((agency) => {
     const search = debouncedSearch.toLowerCase();
@@ -110,19 +103,7 @@ export function AgencyList() {
       agency.address?.toLowerCase().includes(search)
     );
 
-    let matchesZip = true;
-    if (zipMin || zipMax) {
-      const zip = extractZip(agency.address);
-      if (!zip) {
-        matchesZip = false;
-      } else {
-        const zipNum = parseInt(zip);
-        if (zipMin && zipNum < parseInt(zipMin)) matchesZip = false;
-        if (zipMax && zipNum > parseInt(zipMax)) matchesZip = false;
-      }
-    }
-
-    return matchesSearch && matchesZip;
+    return matchesSearch;
   });
 
   const paginatedAgencies = filteredAgencies.slice(
@@ -166,8 +147,8 @@ export function AgencyList() {
       )}
 
       {/* Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto] gap-3">
-        <div className="relative sm:col-span-2 lg:col-span-1">
+      <div className="flex flex-col sm:flex-row gap-3 items-start">
+        <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <input
             type="text"
@@ -175,24 +156,6 @@ export function AgencyList() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Zip from"
-            value={zipMin}
-            onChange={(e) => setZipMin(e.target.value.replace(/\D/g, '').slice(0, 5))}
-            className="w-full sm:w-24 px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-sm"
-          />
-          <span className="text-slate-400">–</span>
-          <input
-            type="text"
-            placeholder="Zip to"
-            value={zipMax}
-            onChange={(e) => setZipMax(e.target.value.replace(/\D/g, '').slice(0, 5))}
-            className="w-full sm:w-24 px-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-sm"
           />
         </div>
         <button
@@ -238,7 +201,6 @@ export function AgencyList() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {paginatedAgencies.map((agency) => {
-            const zip = extractZip(agency.address);
             return (
               <Link
                 key={agency.id}
@@ -271,12 +233,7 @@ export function AgencyList() {
                   {agency.address && (
                     <div className="flex items-center gap-2 text-slate-600 min-w-0">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span className="truncate flex-1">{agency.address}</span>
-                      {zip && (
-                        <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono flex-shrink-0">
-                          {zip}
-                        </span>
-                      )}
+                      <span className="truncate">{agency.address}</span>
                     </div>
                   )}
                 </div>
