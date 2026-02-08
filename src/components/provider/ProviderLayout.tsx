@@ -28,9 +28,15 @@ export function ProviderLayout({ children, title }: ProviderLayoutProps) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/provider/login');
+    try {
+      await signOut();
+      navigate('/provider/login');
+    } catch {
+      navigate('/provider/login');
+    }
   };
 
   return (
@@ -90,7 +96,8 @@ export function ProviderLayout({ children, title }: ProviderLayoutProps) {
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-1">
             {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path ||
+                (item.path !== '/provider/dashboard' && location.pathname.startsWith(item.path));
               const Icon = item.icon;
               return (
                 <Link
@@ -114,7 +121,7 @@ export function ProviderLayout({ children, title }: ProviderLayoutProps) {
           {/* Sign Out */}
           <div className="px-3 py-4 border-t border-slate-100">
             <button
-              onClick={handleSignOut}
+              onClick={() => setShowSignOutConfirm(true)}
               className="flex items-center gap-3 w-full px-3 py-2.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors"
             >
               <LogOut className="w-5 h-5" />
@@ -131,6 +138,30 @@ export function ProviderLayout({ children, title }: ProviderLayoutProps) {
           {children}
         </div>
       </main>
+
+      {/* Sign Out Confirmation Modal */}
+      {showSignOutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50">
+          <div className="bg-white rounded-xl shadow-xl p-6 mx-4 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Sign Out</h3>
+            <p className="text-slate-600 mb-6">Are you sure you want to sign out?</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowSignOutConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

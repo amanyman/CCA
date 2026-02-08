@@ -1,30 +1,35 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoginForm } from '../../components/auth/LoginForm';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 
 export function AdminLogin() {
   const { signIn, user, userType, isLoading } = useAuth();
+  const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Redirect if already logged in as admin
   useEffect(() => {
     if (!isLoading && user && userType === 'admin') {
-      window.location.href = '/admin/dashboard';
+      navigate('/admin/dashboard', { replace: true });
     }
-  }, [user, userType, isLoading]);
+  }, [user, userType, isLoading, navigate]);
 
   const handleLogin = async (email: string, password: string) => {
     const { error } = await signIn(email, password);
     if (error) {
       throw error;
     }
-    // Set redirecting state and use window.location for clean navigation
     setIsRedirecting(true);
-    setTimeout(() => {
-      window.location.href = '/admin/dashboard';
-    }, 500);
   };
+
+  // Redirect once auth state updates after login
+  useEffect(() => {
+    if (isRedirecting && !isLoading && user && userType === 'admin') {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [isRedirecting, isLoading, user, userType, navigate]);
 
   // Show loading if checking auth or redirecting
   if (isLoading || isRedirecting) {

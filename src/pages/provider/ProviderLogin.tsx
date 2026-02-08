@@ -1,31 +1,41 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoginForm } from '../../components/auth/LoginForm';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 
 export function ProviderLogin() {
   const { signIn, user, userType, isLoading } = useAuth();
+  const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Redirect if already logged in as provider
+  // Redirect if already logged in - provider to provider dashboard, admin to admin dashboard
   useEffect(() => {
     if (!isLoading && user && userType === 'provider') {
-      window.location.href = '/provider/dashboard';
+      navigate('/provider/dashboard', { replace: true });
+    } else if (!isLoading && user && userType === 'admin') {
+      navigate('/admin/dashboard', { replace: true });
     }
-  }, [user, userType, isLoading]);
+  }, [user, userType, isLoading, navigate]);
 
   const handleLogin = async (email: string, password: string) => {
     const { error } = await signIn(email, password);
     if (error) {
       throw error;
     }
-    // Set redirecting state and use window.location for clean navigation
     setIsRedirecting(true);
-    // Small delay to ensure auth state propagates
-    setTimeout(() => {
-      window.location.href = '/provider/dashboard';
-    }, 500);
   };
+
+  // Redirect once auth state updates after login - route to correct dashboard based on role
+  useEffect(() => {
+    if (isRedirecting && !isLoading && user && userType) {
+      if (userType === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/provider/dashboard', { replace: true });
+      }
+    }
+  }, [isRedirecting, isLoading, user, userType, navigate]);
 
   // Show loading if checking auth or redirecting
   if (isLoading || isRedirecting) {

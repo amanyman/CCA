@@ -32,6 +32,8 @@ export function ReferralForm() {
     }
     if (!formData.customer_phone.trim()) {
       newErrors.customer_phone = 'Customer phone is required';
+    } else if (!/^\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$/.test(formData.customer_phone.trim())) {
+      newErrors.customer_phone = 'Please enter a valid 10-digit phone number';
     }
     if (formData.customer_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customer_email)) {
       newErrors.customer_email = 'Please enter a valid email';
@@ -65,9 +67,9 @@ export function ReferralForm() {
 
       const { error } = await supabase.from('referrals').insert({
         provider_id: providerData.id,
-        customer_name: formData.customer_name,
-        customer_phone: formData.customer_phone,
-        customer_email: formData.customer_email || null,
+        customer_name: formData.customer_name.trim(),
+        customer_phone: formData.customer_phone.trim(),
+        customer_email: formData.customer_email.trim() || null,
         accident_date: formData.accident_date || null,
         people_involved: formData.people_involved ? parseInt(formData.people_involved) : null,
         at_fault_status: formData.at_fault_status,
@@ -80,8 +82,7 @@ export function ReferralForm() {
       setTimeout(() => {
         navigate('/provider/referrals');
       }, 1500);
-    } catch (err) {
-      console.error('Error creating referral:', err);
+    } catch {
       setErrors({ submit: 'Failed to create referral. Please try again.' });
     } finally {
       setIsSubmitting(false);

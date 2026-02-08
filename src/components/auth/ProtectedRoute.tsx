@@ -27,10 +27,10 @@ export function ProtectedRoute({ children, allowedUserType, redirectTo }: Protec
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
-  // User exists but userType is null - could be new signup or DB issue
-  // Just render the page and let it handle the missing data
+  // User exists but userType is null - redirect to login since role can't be determined
   if (!userType) {
-    return <>{children}</>;
+    const loginPath = allowedUserType === 'admin' ? '/admin/login' : '/provider/login';
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   // Wrong user type - redirect to correct dashboard

@@ -35,41 +35,59 @@ export function AdminDashboard() {
   });
   const [recentReferrals, setRecentReferrals] = useState<RecentReferral[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch agencies count
-      const { count: agencyCount } = await supabase
-        .from('providers')
-        .select('*', { count: 'exact', head: true });
+      try {
+        setError(null);
 
-      // Fetch referrals
-      const { data: referrals } = await supabase
-        .from('referrals')
-        .select(`
-          id,
-          customer_name,
-          status,
-          created_at,
-          provider:providers(agency_name)
-        `)
-        .order('created_at', { ascending: false });
+        // Fetch agencies count
+        const { count: agencyCount, error: agencyError } = await supabase
+          .from('providers')
+          .select('*', { count: 'exact', head: true });
 
-      if (referrals) {
-        // Transform data to handle Supabase's relation format
-        const transformed = referrals.map((item: any) => ({
-          ...item,
-          provider: Array.isArray(item.provider) ? item.provider[0] : item.provider,
-        }));
-        setStats({
-          totalAgencies: agencyCount || 0,
-          totalReferrals: referrals.length,
-          pendingReferrals: referrals.filter((r: any) => r.status === 'pending').length,
-          acceptedReferrals: referrals.filter((r: any) => r.status === 'accepted').length,
-          inProgressReferrals: referrals.filter((r: any) => r.status === 'in_progress').length,
-          closedReferrals: referrals.filter((r: any) => r.status === 'closed').length,
-        });
-        setRecentReferrals(transformed.slice(0, 10));
+        if (agencyError) {
+          setError('Failed to load agency data.');
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch referrals
+        const { data: referrals, error: referralsError } = await supabase
+          .from('referrals')
+          .select(`
+            id,
+            customer_name,
+            status,
+            created_at,
+            provider:providers(agency_name)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (referralsError) {
+          setError('Failed to load referral data.');
+          setIsLoading(false);
+          return;
+        }
+
+        if (referrals) {
+          const transformed = referrals.map((item: any) => ({
+            ...item,
+            provider: Array.isArray(item.provider) ? item.provider[0] : item.provider,
+          }));
+          setStats({
+            totalAgencies: agencyCount || 0,
+            totalReferrals: referrals.length,
+            pendingReferrals: referrals.filter((r: any) => r.status === 'pending').length,
+            acceptedReferrals: referrals.filter((r: any) => r.status === 'accepted').length,
+            inProgressReferrals: referrals.filter((r: any) => r.status === 'in_progress').length,
+            closedReferrals: referrals.filter((r: any) => r.status === 'closed').length,
+          });
+          setRecentReferrals(transformed.slice(0, 10));
+        }
+      } catch {
+        setError('An unexpected error occurred. Please try refreshing.');
       }
 
       setIsLoading(false);
@@ -79,12 +97,16 @@ export function AdminDashboard() {
   }, []);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return 'Unknown date';
+    }
   };
 
   if (isLoading) {
@@ -130,6 +152,19 @@ export function AdminDashboard() {
 
   return (
     <AdminLayout title="Dashboard">
+      {/* Error Banner */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
+          <p className="text-sm text-red-700">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-sm font-medium text-red-700 hover:text-red-800 underline ml-4"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((stat) => {

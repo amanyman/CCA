@@ -17,6 +17,10 @@ import { AgenciesPage } from './pages/admin/AgenciesPage';
 import { AgencyDetailPage } from './pages/admin/AgencyDetailPage';
 import { ReferralsPage } from './pages/admin/ReferralsPage';
 import { AdminReferralDetailPage } from './pages/admin/ReferralDetailPage';
+import { AdminManagementPage } from './pages/admin/AdminManagementPage';
+import { SupportRequestsPage } from './pages/admin/SupportRequestsPage';
+import { ForgotPassword } from './pages/auth/ForgotPassword';
+import { ResetPassword } from './pages/auth/ResetPassword';
 
 function App() {
   return (
@@ -25,6 +29,8 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Provider Auth Routes */}
           <Route path="/provider/login" element={<ProviderLogin />} />
@@ -113,6 +119,22 @@ function App() {
             element={
               <ProtectedRoute allowedUserType="admin">
                 <AdminReferralDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/admin-management"
+            element={
+              <ProtectedRoute allowedUserType="admin">
+                <AdminManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/support-requests"
+            element={
+              <ProtectedRoute allowedUserType="admin">
+                <SupportRequestsPage />
               </ProtectedRoute>
             }
           />

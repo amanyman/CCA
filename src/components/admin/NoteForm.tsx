@@ -72,11 +72,13 @@ export function NoteForm({ referralId, onNoteAdded }: NoteFormProps) {
         </label>
         <textarea
           value={note}
-          onChange={(e) => setNote(e.target.value)}
+          onChange={(e) => setNote(e.target.value.slice(0, 5000))}
           rows={3}
+          maxLength={5000}
           className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
           placeholder="Enter your note here..."
         />
+        <div className="text-xs text-slate-400 text-right mt-1">{note.length}/5000</div>
       </div>
 
       <label className="flex items-center gap-2 cursor-pointer">
@@ -86,7 +88,9 @@ export function NoteForm({ referralId, onNoteAdded }: NoteFormProps) {
           onChange={(e) => setIsVisibleToProvider(e.target.checked)}
           className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
         />
-        <span className="text-sm text-slate-700">Make visible to provider</span>
+        <span className={`text-sm ${isVisibleToProvider ? 'text-blue-700 font-medium' : 'text-slate-700'}`}>
+          {isVisibleToProvider ? 'Visible to provider' : 'Internal only (not visible to provider)'}
+        </span>
       </label>
 
       {error && (

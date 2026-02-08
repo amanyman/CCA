@@ -72,6 +72,8 @@ export function ProfileForm() {
     }
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone is required';
+    } else if (!/^\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$/.test(formData.phone.trim())) {
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
@@ -83,9 +85,20 @@ export function ProfileForm() {
     }
     if (!formData.main_contact_phone.trim()) {
       newErrors.main_contact_phone = 'Main contact phone is required';
+    } else if (!/^\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$/.test(formData.main_contact_phone.trim())) {
+      newErrors.main_contact_phone = 'Please enter a valid 10-digit phone number';
     }
     if (!formData.main_contact_email.trim()) {
       newErrors.main_contact_email = 'Main contact email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.main_contact_email)) {
+      newErrors.main_contact_email = 'Please enter a valid email';
+    }
+    // Validate optional secondary contact fields if provided
+    if (formData.secondary_contact_email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.secondary_contact_email)) {
+      newErrors.secondary_contact_email = 'Please enter a valid email';
+    }
+    if (formData.secondary_contact_phone.trim() && !/^\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$/.test(formData.secondary_contact_phone.trim())) {
+      newErrors.secondary_contact_phone = 'Please enter a valid 10-digit phone number';
     }
 
     setErrors(newErrors);
@@ -113,8 +126,7 @@ export function ProfileForm() {
 
       setIsSuccess(true);
       setTimeout(() => setIsSuccess(false), 3000);
-    } catch (err) {
-      console.error('Error updating profile:', err);
+    } catch {
       setErrors({ submit: 'Failed to update profile. Please try again.' });
     } finally {
       setIsSubmitting(false);

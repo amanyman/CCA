@@ -8,7 +8,9 @@ import {
   Menu,
   X,
   ChevronRight,
-  Shield
+  Shield,
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -21,6 +23,8 @@ const navItems = [
   { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/admin/agencies', label: 'Agencies', icon: Building2 },
   { path: '/admin/referrals', label: 'Referrals', icon: FileText },
+  { path: '/admin/support-requests', label: 'Support Requests', icon: MessageSquare },
+  { path: '/admin/admin-management', label: 'Admin Users', icon: Users },
 ];
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
@@ -29,9 +33,15 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/admin/login');
+    try {
+      await signOut();
+      navigate('/admin/login');
+    } catch {
+      navigate('/admin/login');
+    }
   };
 
   return (
@@ -113,7 +123,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
           {/* Sign Out */}
           <div className="px-3 py-4 border-t border-slate-800">
             <button
-              onClick={handleSignOut}
+              onClick={() => setShowSignOutConfirm(true)}
               className="flex items-center gap-3 w-full px-3 py-2.5 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
             >
               <LogOut className="w-5 h-5" />
@@ -130,6 +140,30 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
           {children}
         </div>
       </main>
+
+      {/* Sign Out Confirmation Modal */}
+      {showSignOutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50">
+          <div className="bg-white rounded-xl shadow-xl p-6 mx-4 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Sign Out</h3>
+            <p className="text-slate-600 mb-6">Are you sure you want to sign out?</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowSignOutConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

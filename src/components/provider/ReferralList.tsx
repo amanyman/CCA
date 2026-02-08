@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Referral, ReferralStatus } from '../../types/referral';
 import { ReferralCard } from './ReferralCard';
 import { LoadingSpinner } from '../common/LoadingSpinner';
+import { Pagination } from '../common/Pagination';
+import { useDebounce } from '../../hooks/useDebounce';
+
+const PAGE_SIZE = 15;
 
 const statusOptions: { value: ReferralStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'All Status' },
@@ -20,36 +24,46 @@ export function ReferralList() {
   const { user } = useAuth();
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ReferralStatus | 'all'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
   useEffect(() => {
     const fetchReferrals = async () => {
       if (!user) return;
 
-      // First get provider ID
-      const { data: providerData } = await supabase
-        .from('providers')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      try {
+        setError(null);
 
-      if (!providerData) {
-        setIsLoading(false);
-        return;
-      }
+        // First get provider ID
+        const { data: providerData, error: providerError } = await supabase
+          .from('providers')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
 
-      // Then get referrals
-      const { data, error } = await supabase
-        .from('referrals')
-        .select('*')
-        .eq('provider_id', providerData.id)
-        .order('created_at', { ascending: false });
+        if (providerError || !providerData) {
+          setError('Could not find your provider profile. Please contact support.');
+          setIsLoading(false);
+          return;
+        }
 
-      if (error) {
-        console.error('Error fetching referrals:', error);
-      } else {
-        setReferrals(data || []);
+        // Then get referrals
+        const { data, error: fetchError } = await supabase
+          .from('referrals')
+          .select('*')
+          .eq('provider_id', providerData.id)
+          .order('created_at', { ascending: false });
+
+        if (fetchError) {
+          setError('Failed to load referrals. Please try refreshing the page.');
+        } else {
+          setReferrals(data || []);
+        }
+      } catch {
+        setError('An unexpected error occurred.');
       }
 
       setIsLoading(false);
@@ -58,16 +72,27 @@ export function ReferralList() {
     fetchReferrals();
   }, [user]);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
+
   const filteredReferrals = referrals.filter((referral) => {
-    const matchesSearch =
-      referral.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      referral.customer_phone.includes(searchTerm) ||
-      (referral.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const search = debouncedSearch.toLowerCase();
+    const matchesSearch = !search ||
+      referral.customer_name?.toLowerCase().includes(search) ||
+      referral.customer_phone?.includes(debouncedSearch) ||
+      (referral.customer_email?.toLowerCase().includes(search) ?? false);
 
     const matchesStatus = statusFilter === 'all' || referral.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
+
+  const paginatedReferrals = filteredReferrals.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   if (isLoading) {
     return (
@@ -79,6 +104,20 @@ export function ReferralList() {
 
   return (
     <div className="space-y-6">
+      {/* Error */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <p className="text-sm text-red-700">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-sm font-medium text-red-700 hover:text-red-800 underline ml-auto"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex flex-col sm:flex-row gap-3 flex-1">
@@ -141,11 +180,19 @@ export function ReferralList() {
           )}
         </div>
       ) : (
-        <div className="grid gap-4">
-          {filteredReferrals.map((referral) => (
-            <ReferralCard key={referral.id} referral={referral} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4">
+            {paginatedReferrals.map((referral) => (
+              <ReferralCard key={referral.id} referral={referral} />
+            ))}
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredReferrals.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+          />
+        </>
       )}
     </div>
   );

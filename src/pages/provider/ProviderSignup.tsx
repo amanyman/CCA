@@ -39,8 +39,14 @@ export function ProviderSignup() {
     }
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/[A-Z]/.test(formData.password)) {
+      newErrors.password = 'Password must include an uppercase letter';
+    } else if (!/[a-z]/.test(formData.password)) {
+      newErrors.password = 'Password must include a lowercase letter';
+    } else if (!/[0-9]/.test(formData.password)) {
+      newErrors.password = 'Password must include a number';
     }
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
@@ -53,6 +59,8 @@ export function ProviderSignup() {
     }
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone number is required';
+    } else if (!/^\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$/.test(formData.phone.trim())) {
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
 
     setErrors(newErrors);
@@ -110,12 +118,12 @@ export function ProviderSignup() {
       // Step 3: Create provider record
       const { error: providerError } = await supabase.from('providers').insert({
         user_id: userId,
-        agency_name: formData.agencyName,
-        email: formData.email,
-        phone: formData.phone,
-        main_contact_name: formData.contactName,
-        main_contact_phone: formData.phone,
-        main_contact_email: formData.email,
+        agency_name: formData.agencyName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim(),
+        main_contact_name: formData.contactName.trim(),
+        main_contact_phone: formData.phone.trim(),
+        main_contact_email: formData.email.trim().toLowerCase(),
         address: '',
       });
 
@@ -279,7 +287,7 @@ export function ProviderSignup() {
                   className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
                     errors.password ? 'border-red-300' : 'border-slate-300'
                   }`}
-                  placeholder="Min. 6 characters"
+                  placeholder="Min. 8 characters (A-Z, a-z, 0-9)"
                 />
               </div>
               {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}

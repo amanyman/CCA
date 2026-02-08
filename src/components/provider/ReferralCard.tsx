@@ -9,11 +9,23 @@ interface ReferralCardProps {
 
 export function ReferralCard({ referral }: ReferralCardProps) {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return 'Unknown date';
+    }
+  };
+
+  const formatPhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+    return phone;
   };
 
   return (
@@ -37,12 +49,12 @@ export function ReferralCard({ referral }: ReferralCardProps) {
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="flex items-center gap-2 text-slate-600">
           <Phone className="w-4 h-4 text-slate-400" />
-          <span>{referral.customer_phone}</span>
+          <span>{formatPhone(referral.customer_phone)}</span>
         </div>
         {referral.customer_email && (
           <div className="flex items-center gap-2 text-slate-600">
             <Mail className="w-4 h-4 text-slate-400" />
-            <span className="truncate">{referral.customer_email}</span>
+            <span className="truncate" title={referral.customer_email}>{referral.customer_email}</span>
           </div>
         )}
         {referral.accident_date && (

@@ -21,8 +21,8 @@ interface DashboardStats {
 export function ProviderDashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const [provider, setProvider] = useState<Provider | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string>('Starting...');
   const [recentReferrals, setRecentReferrals] = useState<Referral[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     total: 0,
     pending: 0,
@@ -35,21 +35,15 @@ export function ProviderDashboard() {
 
   useEffect(() => {
     const fetchData = async () => {
-      setDebugInfo(`Auth loading: ${authLoading}, User: ${user ? user.id : 'null'}`);
-
-      if (authLoading) {
-        setDebugInfo('Waiting for auth...');
-        return;
-      }
+      if (authLoading) return;
 
       if (!user) {
-        setDebugInfo('No user found');
         setIsLoading(false);
         return;
       }
 
       try {
-        setDebugInfo('Fetching provider data...');
+        setError(null);
 
         // Get provider data
         const { data: providerData, error: providerError } = await supabase
@@ -59,13 +53,11 @@ export function ProviderDashboard() {
           .single();
 
         if (providerError) {
-          setDebugInfo(`Provider error: ${providerError.message}`);
           setIsLoading(false);
           return;
         }
 
         if (providerData) {
-          setDebugInfo('Provider found, fetching referrals...');
           setProvider(providerData);
 
           // Get referrals
@@ -76,9 +68,8 @@ export function ProviderDashboard() {
             .order('created_at', { ascending: false });
 
           if (referralsError) {
-            setDebugInfo(`Referrals error: ${referralsError.message}`);
+            setError('Failed to load referrals. Please try refreshing the page.');
           } else if (referrals) {
-            setDebugInfo('Data loaded successfully');
             setRecentReferrals(referrals.slice(0, 5));
             setStats({
               total: referrals.length,
@@ -89,11 +80,9 @@ export function ProviderDashboard() {
               closed: referrals.filter((r) => r.status === 'closed').length,
             });
           }
-        } else {
-          setDebugInfo('No provider data returned');
         }
       } catch (err) {
-        setDebugInfo(`Catch error: ${err}`);
+        setError('An unexpected error occurred. Please try refreshing the page.');
       }
 
       setIsLoading(false);
@@ -107,7 +96,6 @@ export function ProviderDashboard() {
       <ProviderLayout title="Dashboard">
         <div className="flex flex-col items-center justify-center py-12">
           <LoadingSpinner size="lg" message="Loading dashboard..." />
-          <p className="mt-4 text-sm text-slate-500 font-mono">{debugInfo}</p>
         </div>
       </ProviderLayout>
     );
@@ -165,6 +153,19 @@ export function ProviderDashboard() {
 
   return (
     <ProviderLayout title="Dashboard">
+      {/* Error Banner */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
+          <p className="text-sm text-red-700">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-sm font-medium text-red-700 hover:text-red-800 underline ml-4"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-900 to-blue-950 rounded-xl p-6 mb-8 text-white">
         <h2 className="text-xl font-semibold mb-2">

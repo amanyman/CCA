@@ -14,33 +14,46 @@ export function AgencyDetailPage() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
 
-      // Fetch agency
-      const { data: agencyData, error: agencyError } = await supabase
-        .from('providers')
-        .select('*')
-        .eq('id', id)
-        .single();
+      try {
+        setError(null);
 
-      if (agencyError) {
-        console.error('Error fetching agency:', agencyError);
-        setIsLoading(false);
-        return;
+        // Fetch agency
+        const { data: agencyData, error: agencyError } = await supabase
+          .from('providers')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (agencyError) {
+          setError('Failed to load agency details.');
+          setIsLoading(false);
+          return;
+        }
+
+        setAgency(agencyData);
+
+        // Fetch referrals for this agency
+        const { data: referralData, error: referralError } = await supabase
+          .from('referrals')
+          .select('*')
+          .eq('provider_id', id)
+          .order('created_at', { ascending: false });
+
+        if (referralError) {
+          setError('Failed to load referral data for this agency.');
+        } else {
+          setReferrals(referralData || []);
+        }
+      } catch {
+        setError('An unexpected error occurred.');
       }
 
-      setAgency(agencyData);
-
-      // Fetch referrals for this agency
-      const { data: referralData } = await supabase
-        .from('referrals')
-        .select('*')
-        .eq('provider_id', id)
-        .order('created_at', { ascending: false });
-
-      setReferrals(referralData || []);
       setIsLoading(false);
     };
 
@@ -185,10 +198,31 @@ export function AgencyDetailPage() {
             </div>
           </div>
 
+          {/* Error Banner */}
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
+              <p className="text-sm text-red-700">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="text-sm font-medium text-red-700 hover:text-red-800 underline ml-4"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* Recent Referrals */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <h3 className="font-semibold text-slate-800">Recent Referrals</h3>
+              {referrals.length > 5 && (
+                <Link
+                  to={`/admin/referrals?agency=${id}`}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  View all {referrals.length} referrals
+                </Link>
+              )}
             </div>
             <div className="divide-y divide-slate-100">
               {referrals.length === 0 ? (

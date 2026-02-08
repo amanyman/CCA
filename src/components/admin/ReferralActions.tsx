@@ -18,11 +18,15 @@ const statusActions: { status: ReferralStatus; label: string; icon: React.Elemen
 
 export function ReferralActions({ referralId, currentStatus, onStatusChange }: ReferralActionsProps) {
   const [isUpdating, setIsUpdating] = useState<ReferralStatus | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   const handleStatusChange = async (newStatus: ReferralStatus) => {
     if (newStatus === currentStatus) return;
 
     setIsUpdating(newStatus);
+    setActionError(null);
+    setActionSuccess(null);
 
     try {
       const { error } = await supabase
@@ -36,8 +40,10 @@ export function ReferralActions({ referralId, currentStatus, onStatusChange }: R
       if (error) throw error;
 
       onStatusChange(newStatus);
-    } catch (err) {
-      console.error('Error updating status:', err);
+      setActionSuccess(`Status updated to ${newStatus.replace('_', ' ')}`);
+      setTimeout(() => setActionSuccess(null), 3000);
+    } catch {
+      setActionError('Failed to update status. Please try again.');
     } finally {
       setIsUpdating(null);
     }
@@ -68,7 +74,14 @@ export function ReferralActions({ referralId, currentStatus, onStatusChange }: R
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="space-y-3">
+      {actionError && (
+        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{actionError}</p>
+      )}
+      {actionSuccess && (
+        <p className="text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">{actionSuccess}</p>
+      )}
+      <div className="flex flex-wrap gap-2">
       {availableActions.map((action) => {
         const Icon = action.icon;
         const isLoading = isUpdating === action.status;
@@ -89,6 +102,7 @@ export function ReferralActions({ referralId, currentStatus, onStatusChange }: R
           </button>
         );
       })}
+      </div>
     </div>
   );
 }

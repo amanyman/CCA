@@ -1,26 +1,39 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Building2, ChevronRight } from 'lucide-react';
+import { Search, Building2, ChevronRight, AlertCircle, Download } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Provider } from '../../types/provider';
 import { LoadingSpinner } from '../common/LoadingSpinner';
+import { Pagination } from '../common/Pagination';
+import { useDebounce } from '../../hooks/useDebounce';
+import { exportToCSV } from '../../utils/export';
+
+const PAGE_SIZE = 20;
 
 export function AgencyList() {
   const [agencies, setAgencies] = useState<Provider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
   useEffect(() => {
     const fetchAgencies = async () => {
-      const { data, error } = await supabase
-        .from('providers')
-        .select('*')
-        .order('created_at', { ascending: false });
+      try {
+        setError(null);
+        const { data, error: fetchError } = await supabase
+          .from('providers')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching agencies:', error);
-      } else {
-        setAgencies(data || []);
+        if (fetchError) {
+          setError('Failed to load agencies. Please try refreshing the page.');
+        } else {
+          setAgencies(data || []);
+        }
+      } catch {
+        setError('An unexpected error occurred.');
       }
 
       setIsLoading(false);
@@ -29,18 +42,35 @@ export function AgencyList() {
     fetchAgencies();
   }, []);
 
-  const filteredAgencies = agencies.filter((agency) =>
-    agency.agency_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    agency.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    agency.main_contact_name.toLowerCase().includes(searchTerm.toLowerCase())
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
+
+  const filteredAgencies = agencies.filter((agency) => {
+    const search = debouncedSearch.toLowerCase();
+    return !search || (
+      agency.agency_name?.toLowerCase().includes(search) ||
+      agency.email?.toLowerCase().includes(search) ||
+      agency.main_contact_name?.toLowerCase().includes(search)
+    );
+  });
+
+  const paginatedAgencies = filteredAgencies.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
   );
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return 'Unknown date';
+    }
   };
 
   if (isLoading) {
@@ -53,8 +83,23 @@ export function AgencyList() {
 
   return (
     <div className="space-y-6">
-      {/* Search */}
-      <div className="relative max-w-md">
+      {/* Error */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+          <p className="text-sm text-red-700">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-sm font-medium text-red-700 hover:text-red-800 underline ml-auto"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Search & Export */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start">
+      <div className="relative flex-1 max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
         <input
           type="text"
@@ -63,6 +108,26 @@ export function AgencyList() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
         />
+      </div>
+      <button
+        onClick={() => {
+          const exportData = filteredAgencies.map(a => ({
+            agency_name: a.agency_name,
+            email: a.email,
+            phone: a.phone,
+            address: a.address,
+            main_contact_name: a.main_contact_name,
+            main_contact_email: a.main_contact_email,
+            main_contact_phone: a.main_contact_phone,
+            joined: a.created_at,
+          }));
+          exportToCSV(exportData, 'agencies');
+        }}
+        className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors font-medium text-sm whitespace-nowrap"
+      >
+        <Download className="w-4 h-4" />
+        Export CSV
+      </button>
       </div>
 
       {/* Agency Table */}
@@ -79,7 +144,7 @@ export function AgencyList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredAgencies.length === 0 ? (
+              {paginatedAgencies.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -89,7 +154,7 @@ export function AgencyList() {
                   </td>
                 </tr>
               ) : (
-                filteredAgencies.map((agency) => (
+                paginatedAgencies.map((agency) => (
                   <tr key={agency.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-800">{agency.agency_name}</div>
@@ -115,6 +180,14 @@ export function AgencyList() {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="border-t border-slate-100 px-4">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredAgencies.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+          />
         </div>
       </div>
     </div>

@@ -1,34 +1,68 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Loader2, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
-interface LoginFormProps {
-  onSubmit: (email: string, password: string) => Promise<void>;
-  title: string;
-  subtitle?: string;
-  signupLink?: string;
-  signupText?: string;
-}
-
-export function LoginForm({ onSubmit, title, subtitle, signupLink, signupText }: LoginFormProps) {
+export function ForgotPassword() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!email.trim()) {
+      setError('Email is required');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await onSubmit(email, password);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        { redirectTo: `${window.location.origin}/reset-password` }
+      );
+
+      if (resetError) {
+        setError(resetError.message);
+      } else {
+        setIsSuccess(true);
+      }
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
     }
+
+    setIsLoading(false);
   };
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30 px-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800 mb-2">Check Your Email</h1>
+            <p className="text-slate-600 mb-6">
+              We've sent a password reset link to <strong>{email}</strong>.
+              Please check your inbox and follow the instructions.
+            </p>
+            <Link
+              to="/provider/login"
+              className="inline-flex items-center gap-2 text-blue-900 hover:text-blue-950 font-medium"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Sign In
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50/30 px-4">
@@ -42,8 +76,8 @@ export function LoginForm({ onSubmit, title, subtitle, signupLink, signupText }:
                 className="h-12 w-auto mx-auto"
               />
             </Link>
-            <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
-            {subtitle && <p className="text-slate-600 mt-2">{subtitle}</p>}
+            <h1 className="text-2xl font-bold text-slate-800">Reset Password</h1>
+            <p className="text-slate-600 mt-2">Enter your email to receive a password reset link</p>
           </div>
 
           {error && (
@@ -71,23 +105,6 @@ export function LoginForm({ onSubmit, title, subtitle, signupLink, signupText }:
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="Enter your password"
-                  required
-                />
-              </div>
-            </div>
-
             <button
               type="submit"
               disabled={isLoading}
@@ -96,32 +113,20 @@ export function LoginForm({ onSubmit, title, subtitle, signupLink, signupText }:
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Signing in...
+                  Sending...
                 </>
               ) : (
-                'Sign In'
+                'Send Reset Link'
               )}
             </button>
-
-            <div className="text-center mt-3">
-              <Link to="/forgot-password" className="text-sm text-blue-900 hover:text-blue-950 font-medium">
-                Forgot your password?
-              </Link>
-            </div>
           </form>
 
-          {signupLink && signupText && (
-            <p className="mt-6 text-center text-sm text-slate-600">
-              {signupText}{' '}
-              <Link to={signupLink} className="text-blue-900 hover:text-blue-950 font-semibold">
-                Sign up here
-              </Link>
-            </p>
-          )}
-
-          <div className="mt-6 text-center">
-            <Link to="/" className="text-sm text-slate-500 hover:text-slate-700">
-              &larr; Back to Home
+          <div className="mt-6 text-center space-y-3">
+            <Link to="/provider/login" className="block text-sm text-blue-900 hover:text-blue-950 font-medium">
+              Back to Provider Login
+            </Link>
+            <Link to="/admin/login" className="block text-sm text-slate-500 hover:text-slate-700">
+              Admin Login
             </Link>
           </div>
         </div>
