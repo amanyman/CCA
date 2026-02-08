@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Search, Filter, FileText, ChevronRight, AlertCircle, Download, CheckSquare, Loader2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { ReferralStatus } from '../../types/referral';
+import { notifyUser } from '../../lib/notifications';
 import { StatusBadge } from '../common/StatusBadge';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Pagination } from '../common/Pagination';
@@ -17,8 +18,10 @@ interface ReferralWithProvider {
   customer_phone: string;
   status: ReferralStatus;
   created_at: string;
+  provider_id: string;
   provider: {
     agency_name: string;
+    user_id: string;
   } | null;
 }
 
@@ -32,6 +35,7 @@ const statusOptions: { value: ReferralStatus | 'all'; label: string }[] = [
 ];
 
 const bulkStatusOptions: { value: ReferralStatus; label: string }[] = [
+  { value: 'pending', label: 'Pending' },
   { value: 'accepted', label: 'Accepted' },
   { value: 'rejected', label: 'Rejected' },
   { value: 'in_progress', label: 'In Progress' },
@@ -63,7 +67,8 @@ export function ReferralTable() {
             customer_phone,
             status,
             created_at,
-            provider:providers(agency_name)
+            provider_id,
+            provider:providers(agency_name, user_id)
           `)
           .order('created_at', { ascending: false });
 
@@ -108,9 +113,7 @@ export function ReferralTable() {
     currentPage * PAGE_SIZE
   );
 
-  // Only pending referrals can be selected for bulk status changes (non-pending are locked)
-  const selectableReferrals = paginatedReferrals.filter(r => r.status === 'pending');
-  const allPageSelected = selectableReferrals.length > 0 && selectableReferrals.every(r => selectedIds.has(r.id));
+  const allPageSelected = paginatedReferrals.length > 0 && paginatedReferrals.every(r => selectedIds.has(r.id));
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -128,13 +131,13 @@ export function ReferralTable() {
     if (allPageSelected) {
       setSelectedIds(prev => {
         const next = new Set(prev);
-        selectableReferrals.forEach(r => next.delete(r.id));
+        paginatedReferrals.forEach(r => next.delete(r.id));
         return next;
       });
     } else {
       setSelectedIds(prev => {
         const next = new Set(prev);
-        selectableReferrals.forEach(r => next.add(r.id));
+        paginatedReferrals.forEach(r => next.add(r.id));
         return next;
       });
     }
@@ -153,6 +156,23 @@ export function ReferralTable() {
         .in('id', Array.from(selectedIds));
 
       if (updateError) throw updateError;
+
+      // Notify each affected provider
+      const affectedReferrals = referrals.filter(r => selectedIds.has(r.id));
+      const notifiedUserIds = new Set<string>();
+      for (const ref of affectedReferrals) {
+        const userId = ref.provider?.user_id;
+        if (userId && !notifiedUserIds.has(userId)) {
+          notifiedUserIds.add(userId);
+          notifyUser(
+            userId,
+            'status_change',
+            'Referral Status Updated',
+            `Your referral status has been updated to ${bulkStatus.replace('_', ' ')}`,
+            ref.id
+          );
+        }
+      }
 
       setReferrals(prev =>
         prev.map(r => selectedIds.has(r.id) ? { ...r, status: bulkStatus } : r)
@@ -334,9 +354,7 @@ export function ReferralTable() {
                         type="checkbox"
                         checked={selectedIds.has(referral.id)}
                         onChange={() => toggleSelect(referral.id)}
-                        disabled={referral.status !== 'pending'}
-                        title={referral.status !== 'pending' ? 'Status is locked' : undefined}
-                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                       />
                     </td>
                     <td className="px-6 py-4">

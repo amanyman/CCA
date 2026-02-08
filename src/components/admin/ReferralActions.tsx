@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, FolderClosed, Loader2, ChevronDown, AlertCircle, Lock } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, FolderClosed, Loader2, ChevronDown, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { ReferralStatus } from '../../types/referral';
 import { notifyUser } from '../../lib/notifications';
@@ -98,21 +98,6 @@ export function ReferralActions({ referralId, currentStatus, onStatusChange, pro
     }
   };
 
-  // Once status has been changed from pending, it's locked
-  const isLocked = currentStatus !== 'pending';
-
-  if (isLocked) {
-    return (
-      <div className="space-y-3">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-600">
-          <span className={`w-2.5 h-2.5 rounded-full ${currentStatusInfo.dotColor}`} />
-          {currentStatusInfo.label}
-          <Lock className="w-3.5 h-3.5 text-slate-400" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-3">
       {actionError && (
@@ -138,16 +123,22 @@ export function ReferralActions({ referralId, currentStatus, onStatusChange, pro
 
         {isOpen && (
           <div className="absolute z-10 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg py-1">
-            {allStatuses.filter((s) => s.status !== 'pending').map((item) => {
+            {allStatuses.map((item) => {
               const Icon = item.icon;
+              const isCurrent = item.status === currentStatus;
               return (
                 <button
                   key={item.status}
                   onClick={() => handleStatusChange(item.status)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-slate-600 hover:bg-slate-50 transition-colors"
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors ${
+                    isCurrent
+                      ? 'bg-slate-100 text-slate-800 font-medium'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
                 >
-                  <Icon className="w-4 h-4 text-slate-400" />
+                  <Icon className={`w-4 h-4 ${isCurrent ? 'text-slate-700' : 'text-slate-400'}`} />
                   {item.label}
+                  {isCurrent && <span className="ml-auto text-xs text-slate-400">Current</span>}
                 </button>
               );
             })}
