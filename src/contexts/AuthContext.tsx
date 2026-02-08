@@ -84,12 +84,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
 
       if (!newSession) {
         setUserType(null);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Re-validate user type on sign-in and token refresh
+        // This ensures revoked roles are detected promptly
+        const type = await determineUserType(newSession.user.id);
+        setUserType(type);
+        if (!type) {
+          // User exists in auth but has no valid role — sign them out
+          await supabase.auth.signOut();
+        }
       }
     });
 

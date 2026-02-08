@@ -3,6 +3,7 @@ import { CheckCircle, Loader2, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 import { notifyAdmins } from '../lib/notifications';
+import { sanitizeText, isRateLimited } from '../lib/validation';
 
 interface FormData {
   name: string;
@@ -99,6 +100,12 @@ export function SupportRequestForm({ onSuccess }: { onSuccess?: () => void }) {
 
     if (!validateForm()) return;
 
+    // Rate limit: max 5 support requests per 30 minutes
+    if (isRateLimited('support-request', 5, 30 * 60 * 1000)) {
+      setErrors({ submit: 'Too many requests. Please wait a few minutes and try again.' });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -106,16 +113,16 @@ export function SupportRequestForm({ onSuccess }: { onSuccess?: () => void }) {
       const formattedDate = `${year}-${month}-${day}`;
 
       const { error } = await supabase.from('support_requests').insert({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
+        name: sanitizeText(formData.name),
+        email: formData.email.trim().toLowerCase(),
+        phone: sanitizeText(formData.phone),
+        address: formData.address.trim(),
         preferred_contact_method: formData.preferredContactMethod,
         help_type: formData.helpType,
-        what_happened: formData.whatHappened,
+        what_happened: sanitizeText(formData.whatHappened),
         incident_date: formattedDate,
         any_passengers: formData.anyPassengers,
-        referred_by: formData.referredBy || null,
+        referred_by: formData.referredBy ? sanitizeText(formData.referredBy) : null,
         consent_given: formData.consentGiven
       });
 

@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ReferralFormData, AtFaultStatus } from '../../types/referral';
 import { notifyAdmins } from '../../lib/notifications';
+import { sanitizeText } from '../../lib/validation';
 
 interface FormErrors {
   [key: string]: string;
@@ -39,8 +40,11 @@ export function ReferralForm() {
     if (formData.customer_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customer_email)) {
       newErrors.customer_email = 'Please enter a valid email';
     }
-    if (formData.people_involved && isNaN(parseInt(formData.people_involved))) {
-      newErrors.people_involved = 'Please enter a valid number';
+    if (formData.people_involved) {
+      const num = parseInt(formData.people_involved);
+      if (isNaN(num) || num < 1 || num > 100) {
+        newErrors.people_involved = 'Please enter a valid number between 1 and 100';
+      }
     }
 
     setErrors(newErrors);
@@ -68,8 +72,8 @@ export function ReferralForm() {
 
       const { error } = await supabase.from('referrals').insert({
         provider_id: providerData.id,
-        customer_name: formData.customer_name.trim(),
-        customer_phone: formData.customer_phone.trim(),
+        customer_name: sanitizeText(formData.customer_name),
+        customer_phone: sanitizeText(formData.customer_phone),
         customer_email: formData.customer_email.trim() || null,
         accident_date: formData.accident_date || null,
         people_involved: formData.people_involved ? parseInt(formData.people_involved) : null,

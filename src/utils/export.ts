@@ -1,3 +1,12 @@
+function sanitizeCSVValue(str: string): string {
+  // Prevent CSV injection: values starting with =, +, -, @, \t, \r
+  // can be interpreted as formulas by spreadsheet software
+  if (/^[=+\-@\t\r]/.test(str)) {
+    return "'" + str;
+  }
+  return str;
+}
+
 export function exportToCSV(data: Record<string, unknown>[], filename: string) {
   if (data.length === 0) return;
 
@@ -12,8 +21,8 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string) {
     const values = headers.map(header => {
       const val = row[header];
       const str = val === null || val === undefined ? '' : String(val);
-      // Escape double quotes
-      return `"${str.replace(/"/g, '""')}"`;
+      // Escape double quotes, then sanitize against CSV injection
+      return `"${sanitizeCSVValue(str.replace(/"/g, '""'))}"`;
     });
     csvRows.push(values.join(','));
   }

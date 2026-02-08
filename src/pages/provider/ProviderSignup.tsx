@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Loader2, Mail, Lock, AlertCircle, Building2, User, Phone, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { notifyAdmins } from '../../lib/notifications';
+import { validatePassword, sanitizeText, isRateLimited } from '../../lib/validation';
 
 interface FormData {
   email: string;
@@ -44,16 +45,9 @@ export function ProviderSignup() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email';
     }
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    } else if (!/[A-Z]/.test(formData.password)) {
-      newErrors.password = 'Password must include an uppercase letter';
-    } else if (!/[a-z]/.test(formData.password)) {
-      newErrors.password = 'Password must include a lowercase letter';
-    } else if (!/[0-9]/.test(formData.password)) {
-      newErrors.password = 'Password must include a number';
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      newErrors.password = passwordError;
     }
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
@@ -88,6 +82,12 @@ export function ProviderSignup() {
     e.preventDefault();
 
     if (!validateForm()) return;
+
+    // Rate limit: max 5 signup attempts per 10 minutes
+    if (isRateLimited('signup', 5, 10 * 60 * 1000)) {
+      setErrors({ submit: 'Too many signup attempts. Please wait a few minutes and try again.' });
+      return;
+    }
 
     setIsLoading(true);
     setErrors({});
@@ -135,11 +135,11 @@ export function ProviderSignup() {
       // Step 3: Create provider record
       const { error: providerError } = await supabase.from('providers').insert({
         user_id: userId,
-        agency_name: formData.agencyName.trim(),
+        agency_name: sanitizeText(formData.agencyName),
         email: formData.email.trim().toLowerCase(),
-        phone: formData.businessPhone.trim(),
-        main_contact_name: formData.contactName.trim(),
-        main_contact_phone: formData.contactPhone.trim(),
+        phone: sanitizeText(formData.businessPhone),
+        main_contact_name: sanitizeText(formData.contactName),
+        main_contact_phone: sanitizeText(formData.contactPhone),
         main_contact_email: formData.contactEmail.trim().toLowerCase(),
         address: '',
       });
@@ -365,7 +365,7 @@ export function ProviderSignup() {
                       className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
                         errors.password ? 'border-red-300' : 'border-slate-300'
                       }`}
-                      placeholder="Min. 8 characters (A-Z, a-z, 0-9)"
+                      placeholder="Min. 10 chars, A-Z, a-z, 0-9, special char"
                     />
                   </div>
                   {errors.password && <p className="mt-1 text-sm text-red-500">{errors.password}</p>}

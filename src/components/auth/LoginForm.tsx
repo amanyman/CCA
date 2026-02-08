@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Mail, Lock, AlertCircle } from 'lucide-react';
+import { isRateLimited } from '../../lib/validation';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => Promise<void>;
@@ -19,12 +20,19 @@ export function LoginForm({ onSubmit, title, subtitle, signupLink, signupText }:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Rate limit: max 10 login attempts per 15 minutes
+    if (isRateLimited('login', 10, 15 * 60 * 1000)) {
+      setError('Too many login attempts. Please wait a few minutes and try again.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       await onSubmit(email, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError('Invalid email or password');
     } finally {
       setIsLoading(false);
     }

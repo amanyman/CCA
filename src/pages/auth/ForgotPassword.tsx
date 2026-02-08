@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Loader2, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { isRateLimited } from '../../lib/validation';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -18,6 +19,12 @@ export function ForgotPassword() {
       return;
     }
 
+    // Rate limit: max 3 reset requests per 15 minutes
+    if (isRateLimited('forgot-password', 3, 15 * 60 * 1000)) {
+      setError('Too many reset requests. Please wait a few minutes and try again.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -27,10 +34,11 @@ export function ForgotPassword() {
       );
 
       if (resetError) {
-        setError(resetError.message);
-      } else {
-        setIsSuccess(true);
+        // Don't expose whether the email exists - always show success
+        console.error('Password reset error:', resetError.message);
       }
+      // Always show success to prevent email enumeration
+      setIsSuccess(true);
     } catch {
       setError('An unexpected error occurred. Please try again.');
     }

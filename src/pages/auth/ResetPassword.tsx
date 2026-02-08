@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Lock, Loader2, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { validatePassword, isRateLimited } from '../../lib/validation';
 
 export function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -14,28 +15,19 @@ export function ResetPassword() {
     e.preventDefault();
     setError('');
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      setError('Password must include an uppercase letter');
-      return;
-    }
-
-    if (!/[a-z]/.test(password)) {
-      setError('Password must include a lowercase letter');
-      return;
-    }
-
-    if (!/[0-9]/.test(password)) {
-      setError('Password must include a number');
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+
+    if (isRateLimited('reset-password', 5, 10 * 60 * 1000)) {
+      setError('Too many attempts. Please wait a few minutes and try again.');
       return;
     }
 
@@ -117,7 +109,7 @@ export function ResetPassword() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="Min. 8 characters (A-Z, a-z, 0-9)"
+                  placeholder="Min. 10 chars, A-Z, a-z, 0-9, special char"
                   required
                 />
               </div>
